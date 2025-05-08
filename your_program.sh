@@ -2,6 +2,7 @@
 
 set -e # Exit early if any commands fail
 
+export VCPKG_ROOT="$HOME/vcpkg"
 
 (
   cd "$(dirname "$0")" # Ensure compile steps are run within the repository directory
