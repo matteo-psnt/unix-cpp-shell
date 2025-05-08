@@ -29,9 +29,39 @@ std::string find_executable(const std::string &cmd) {
     return "";
 }
 
+void run_external_command(const std::vector<std::string> &tokens) {
+    const std::string exec_path = find_executable(tokens[0]);
+    if (exec_path.empty()) {
+        std::cout << tokens[0] << ": command not found" << std::endl;
+        return;
+    }
+
+    const pid_t pid = fork();
+    if (pid == 0) {
+        // Child process
+        std::vector<char *> args;
+        args.reserve(tokens.size());
+        for (const auto &arg : tokens) {
+            args.push_back(const_cast<char *>(arg.c_str()));
+        }
+        args.push_back(nullptr); // Null-terminate
+
+        execv(exec_path.c_str(), args.data());
+        perror("execv failed"); // If execv returns, it's an error
+        std::exit(1);
+    } else if (pid > 0) {
+        // Parent process
+        int status;
+        waitpid(pid, &status, 0);
+    } else {
+        perror("fork failed");
+    }
+}
+
+
 using CommandHandler = std::function<bool(const std::vector<std::string> &)>;
 
-std::unordered_map<std::string, CommandHandler> command_table = {
+const std::unordered_map<std::string, CommandHandler> command_table = {
     {
         "exit", [](const std::vector<std::string> &args) {
             return true;
@@ -71,7 +101,7 @@ bool execute_command(const std::string &input, const std::vector<std::string> &t
     if (it != command_table.end()) {
         return it->second(tokens);
     } else {
-        std::cout << input << ": command not found" << std::endl;
+        run_external_command(tokens);
         return false;
     }
 }
