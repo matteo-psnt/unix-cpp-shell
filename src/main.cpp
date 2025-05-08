@@ -22,9 +22,15 @@ int main() {
 
     if (tokens[0] == "exit") {
       break;
-    } 
+    } else if (tokens[0] == "echo") {
+      for (size_t i = 1; i < tokens.size(); ++i) {
+        std::cout << tokens[i] << " ";
+      }
+      std::cout << std::endl;
+    } else {
+      std::cout << input << ": command not found" << std::endl;
+    }
 
-    std::cout << input << ": command not found" << std::endl;
   }
   return 0;
 }
