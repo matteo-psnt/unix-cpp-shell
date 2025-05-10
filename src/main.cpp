@@ -7,6 +7,9 @@
 #include <unordered_map>
 #include <functional>
 #include <filesystem>
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <cstring>
 
 std::string find_executable(const std::string &cmd) {
     if (cmd.find('/') != std::string::npos) {
@@ -47,7 +50,7 @@ void run_external_command(const std::vector<std::string> &tokens) {
         args.push_back(nullptr); // Null-terminate
 
         execv(exec_path.c_str(), args.data());
-        perror("execv failed"); // If execv returns, it's an error
+        perror("execv failed");
         std::exit(1);
     } else if (pid > 0) {
         // Parent process
@@ -57,7 +60,6 @@ void run_external_command(const std::vector<std::string> &tokens) {
         perror("fork failed");
     }
 }
-
 
 using CommandHandler = std::function<bool(const std::vector<std::string> &)>;
 
@@ -93,6 +95,29 @@ const std::unordered_map<std::string, CommandHandler> command_table = {
     },
 };
 
+const std::vector<std::string> builtin_commands = {"echo", "exit", "type"};
+
+char* command_generator(const char* text, int state) {
+    static size_t list_index;
+    static size_t len;
+    if (state == 0) {
+        list_index = 0;
+        len = std::strlen(text);
+    }
+
+    while (list_index < builtin_commands.size()) {
+        const std::string& name = builtin_commands[list_index++];
+        if (name.compare(0, len, text) == 0) {
+            return strdup(name.c_str());
+        }
+    }
+    return nullptr;
+}
+
+char** completer(const char* text, int start, int end) {
+    rl_attempted_completion_over = 1;
+    return rl_completion_matches(text, command_generator);
+}
 
 bool execute_command(const std::string &input, const std::vector<std::string> &tokens) {
     if (tokens.empty()) return false;
@@ -107,24 +132,27 @@ bool execute_command(const std::string &input, const std::vector<std::string> &t
 }
 
 int main() {
-    // Flush after every std::cout / std:cerr
+    rl_attempted_completion_function = completer;
+
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
     while (true) {
-        std::cout << "$ ";
-        std::string input;
-        std::getline(std::cin, input);
+        char* line = readline("$ ");
+        if (!line) break;
+
+        std::string input(line);
+        free(line);
+
+        if (!input.empty()) add_history(input.c_str());
 
         std::istringstream iss(input);
         std::vector<std::string> tokens;
         std::string token;
-
-        while (iss >> token) {
-            tokens.push_back(token);
-        }
+        while (iss >> token) tokens.push_back(token);
 
         if (execute_command(input, tokens)) break;
     }
+
     return 0;
 }
