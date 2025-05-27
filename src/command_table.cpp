@@ -61,7 +61,7 @@ std::unordered_map<std::string, CommandHandler> command_table = {
                 target = args[1].c_str();
             }
             if (chdir(target) != 0) {
-                std::perror("cd");
+                std::cerr << "cd: " << target << ": No such file or directory" << std::endl;
             }
             return false;
         }
