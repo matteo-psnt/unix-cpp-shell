@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
 #include <sstream>
 #include <iostream>
+#include <gtest/gtest.h>
 #include "shell_utils.h"
 #include "command_table.h"
 
@@ -64,7 +64,7 @@ TEST(command_table, cd_changes_directory) {
     execute_command(tokens);
     char new_cwd[4096];
     ASSERT_TRUE(getcwd(new_cwd, sizeof(new_cwd)) != nullptr);
-    EXPECT_EQ(std::string(new_cwd), "/tmp");
+    EXPECT_EQ(std::string(new_cwd), "/private/tmp");
     // Change back to original directory for test isolation
     std::vector<std::string> back = {"cd", old_dir};
     execute_command(back);

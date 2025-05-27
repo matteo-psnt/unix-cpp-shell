@@ -1,12 +1,13 @@
 #include <iostream>
-#include <sstream>
 #include <vector>
 #include <string>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include "shell_utils.h"
-#include "command_table.h"
 #include "completion.h"
+#include "command_table.h"
+#include "command_parser.h"
+#include "redirect_guard.h"
 
 int main() {
     // Configure readline to use our custom completer
@@ -34,7 +35,17 @@ int main() {
         if (tokens.empty()) {
             continue;
         }
-        if (execute_command(tokens)) {
+
+        ParsedCommand cmd = parse_redirection(std::move(tokens));
+        auto run_cmd = [&]() { return execute_command(cmd.tokens); };
+        bool should_exit;
+        if (cmd.redirect_type == RedirectType::None || cmd.redirect_file.empty()) {
+            should_exit = run_cmd();
+        } else {
+            RedirectGuard guard(cmd.redirect_file, cmd.redirect_type);
+            should_exit = run_cmd();
+        }
+        if (should_exit) {
             break;
         }
     }

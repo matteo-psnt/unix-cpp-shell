@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-
-project(shell-starter-cpp CXX)
-
+project(shell-cpp CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -33,8 +31,9 @@ file(GLOB TEST_SOURCES tests/*_test.cpp)
 add_executable(shell_tests ${TEST_SOURCES} src/shell_utils.cpp src/command_table.cpp src/completion.cpp)
 target_include_directories(shell_tests PRIVATE src)
 target_link_libraries(shell_tests PRIVATE gtest_main ${READLINE_LIB} ${NCURSES_LIB})
-add_test(NAME shell_tests COMMAND shell_tests)
 
+include(GoogleTest)
+gtest_discover_tests(shell_tests)
 
 # Link readline and ncurses libraries for both shell and shell_tests
 find_library(READLINE_LIB readline REQUIRED)

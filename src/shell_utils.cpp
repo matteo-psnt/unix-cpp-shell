@@ -1,7 +1,5 @@
 #include "shell_utils.h"
 #include "command_table.h"
-#include <cstdlib>
-#include <unistd.h>
 #include <sys/wait.h>
 #include <iostream>
 #include <sstream>
