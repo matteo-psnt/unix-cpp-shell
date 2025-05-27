@@ -55,7 +55,7 @@ TEST(execute_command, non_existent_command) {
     EXPECT_NE(err_output.find("command not found"), std::string::npos);
 }
 
-TEST(tokenize_input, handles_single_and_double_quoted_and_unquoted_segments) {
+TEST(tokenize_input, single_and_double_quoted_and_unquoted_segments) {
     using V = std::vector<std::string>;
     // Simple single-quoted
     EXPECT_EQ(tokenize_input("echo 'hello world'"), (V{"echo", "hello world"}));
@@ -112,4 +112,16 @@ TEST(tokenize_input, handles_single_and_double_quoted_and_unquoted_segments) {
     EXPECT_EQ(tokenize_input("echo \"foo bar"), (V{"echo", "foo bar"}));
     // Double-quoted with newline escape (should keep newline)
     EXPECT_EQ(tokenize_input("echo \"foo\\\nbar\""), (V{"echo", "foo\nbar"}));
+
+    // --- Backslash escaping in unquoted context ---
+    // Escaped space
+    EXPECT_EQ(tokenize_input("echo before\\   after"), (V{"echo", "before ", "after"}));
+    // Multiple escaped spaces
+    EXPECT_EQ(tokenize_input("echo world\\ \\ \\ \\ \\ \\ script"), (V{"echo", "world      script"}));
+    // Escaped backslash
+    EXPECT_EQ(tokenize_input("echo foo\\\\bar"), (V{"echo", "foo\\bar"}));
+    // Escaped quote in unquoted context
+    EXPECT_EQ(tokenize_input("echo foo\\\"bar"), (V{"echo", "foo\"bar"}));
+    // Escaped single quote in unquoted context
+    EXPECT_EQ(tokenize_input("echo foo\\'bar"), (V{"echo", "foo\'bar"}));
 }

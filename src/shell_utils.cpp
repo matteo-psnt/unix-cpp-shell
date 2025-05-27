@@ -61,11 +61,14 @@ std::vector<std::string> tokenize_input(const std::string& input) {
                         ++i;
                     }
                 }
+            } else if (input[i] == '\\' && i + 1 < input.size()) {
+                // Unquoted backslash escapes next character
+                token += input[i + 1];
+                i += 2;
             } else {
                 // Unquoted segment
-                size_t start = i;
-                while (i < input.size() && !std::isspace(input[i]) && input[i] != '\'' && input[i] != '"') ++i;
-                token += input.substr(start, i - start);
+                token += input[i];
+                ++i;
             }
         }
         if (!token.empty()) {
