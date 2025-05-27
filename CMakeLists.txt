@@ -28,7 +28,7 @@ enable_testing()
 file(GLOB TEST_SOURCES tests/*_test.cpp)
 
 # Test executable and linking
-add_executable(shell_tests ${TEST_SOURCES} src/shell_utils.cpp src/command_table.cpp src/completion.cpp)
+add_executable(shell_tests ${TEST_SOURCES} src/shell_utils.cpp src/command_table.cpp src/completion.cpp src/command_parser.cpp src/pipe_utils.cpp)
 target_include_directories(shell_tests PRIVATE src)
 target_link_libraries(shell_tests PRIVATE gtest_main ${READLINE_LIB} ${NCURSES_LIB})
 
