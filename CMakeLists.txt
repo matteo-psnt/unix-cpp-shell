@@ -1,3 +1,9 @@
+ # Enable vcpkg toolchain
+ if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+       CACHE STRING "Vcpkg toolchain file")
+ endif()
+
 cmake_minimum_required(VERSION 3.15)
 project(shell-cpp CXX)
 
@@ -30,13 +36,12 @@ file(GLOB TEST_SOURCES tests/*_test.cpp)
 # Test executable and linking
 add_executable(shell_tests ${TEST_SOURCES} src/shell_utils.cpp src/command_table.cpp src/completion.cpp src/command_parser.cpp src/pipe_utils.cpp src/redirect_guard.cpp)
 target_include_directories(shell_tests PRIVATE src)
-target_link_libraries(shell_tests PRIVATE gtest_main ${READLINE_LIB} ${NCURSES_LIB})
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(readline REQUIRED IMPORTED_TARGET readline)
+
+target_link_libraries(shell PRIVATE PkgConfig::readline)
+target_link_libraries(shell_tests PRIVATE gtest_main PkgConfig::readline)
 
 include(GoogleTest)
 gtest_discover_tests(shell_tests)
 
-# Link readline and ncurses libraries for both shell and shell_tests
-find_library(READLINE_LIB readline REQUIRED)
-find_library(NCURSES_LIB ncurses REQUIRED)
-target_link_libraries(shell PRIVATE ${READLINE_LIB} ${NCURSES_LIB})
-target_link_libraries(shell_tests PRIVATE ${READLINE_LIB} ${NCURSES_LIB})

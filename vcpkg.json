@@ -2,6 +2,10 @@
   "name": "shell-starter-cpp",
   "version-string": "0.1.0",
   "dependencies": [
-    "readline"
-  ]
+    "readline",
+    "ncurses"
+  ],
+  "overrides": [],
+  "features": {},
+  "builtin-baseline": "54d2d48b1b07b5d43197c249e9d82be146af29b6"
 }

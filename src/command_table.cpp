@@ -2,6 +2,8 @@
 #include "shell_utils.h"
 #include <iostream>
 #include <unistd.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 
 // Built-in commands
 std::unordered_map<std::string, CommandHandler> command_table = {
@@ -34,6 +36,26 @@ std::unordered_map<std::string, CommandHandler> command_table = {
                     } else {
                         std::cout << cmd_to_check << ": not found" << std::endl;
                     }
+                }
+            }
+            return false;
+        }
+    },
+    {
+        "history", [](const std::vector<std::string> &args) {
+            HIST_ENTRY** hist_list = history_list();
+            int start = 1;
+            int end = history_length;
+            if (args.size() == 2) {
+                try {
+                    int n = std::stoi(args[1]);
+                    if (n < end) start = std::max(1, end - n + 1);
+                } catch (...) {}
+            }
+            if (hist_list) {
+                for (int i = start - 1; i < end; ++i) {
+                    if (hist_list[i])
+                        std::cout << i + history_base << "  " << hist_list[i]->line << std::endl;
                 }
             }
             return false;

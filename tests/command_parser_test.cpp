@@ -33,6 +33,7 @@ TEST(CommandParserTest, StderrRedirection) {
 TEST(CommandParserTest, StderrAppendRedirection) {
     std::vector<std::string> tokens = {"ls", "2>>", "err.txt"};
     ParsedCommand cmd = parse_redirection(tokens);
+    ASSERT_EQ(cmd.pipeline.size(), 1);
     EXPECT_EQ(cmd.pipeline[0], std::vector<std::string>({"ls"}));
     EXPECT_EQ(cmd.redirect_type, RedirectType::StderrAppend);
     EXPECT_EQ(cmd.redirect_file, "err.txt");
