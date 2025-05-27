@@ -10,7 +10,7 @@ ParsedCommand parse_redirection(std::vector<std::string> tokens) {
             result.redirect_type = RedirectType::BothAppend;
         } else if (op == "&>") {
             result.redirect_type = RedirectType::Both;
-        } else if (op == ">>") {
+        } else if (op == ">>" || op == "1>>") {
             result.redirect_type = RedirectType::StdoutAppend;
         } else if (op == ">" || op == "1>") {
             result.redirect_type = RedirectType::Stdout;
