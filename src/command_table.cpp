@@ -1,7 +1,9 @@
 #include "command_table.h"
 #include "shell_utils.h"
 #include <iostream>
+#include <unistd.h>
 
+// Built-in commands
 std::unordered_map<std::string, CommandHandler> command_table = {
     {
         "exit", [](const std::vector<std::string> &/*args*/) {
@@ -36,6 +38,32 @@ std::unordered_map<std::string, CommandHandler> command_table = {
             }
             return false;
         }
-    }
-    // Built-in commands
+    },
+    {
+        "pwd", [](const std::vector<std::string> &args) {
+            char cwd[4096];
+            if (getcwd(cwd, sizeof(cwd)) != nullptr) {
+                std::cout << cwd << std::endl;
+            } else {
+                std::perror("pwd");
+            }
+            return false;
+        }
+    },
+    {
+        "cd", [](const std::vector<std::string> &args) {
+            const char* target = nullptr;
+            if (args.size() < 2) {
+                // No argument: go to HOME
+                target = std::getenv("HOME");
+                if (!target) target = "/";
+            } else {
+                target = args[1].c_str();
+            }
+            if (chdir(target) != 0) {
+                std::perror("cd");
+            }
+            return false;
+        }
+    },
 };
