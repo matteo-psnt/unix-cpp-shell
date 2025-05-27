@@ -5,7 +5,6 @@
 #include <readline/history.h>
 #include "shell_utils.h"
 #include "completion.h"
-#include "command_table.h"
 #include "command_parser.h"
 #include "redirect_guard.h"
 #include "pipe_utils.h"
@@ -17,6 +16,7 @@ int main() {
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
 
+    // Main shell loop: read, parse, and execute commands
     while (true) {
         char* line_c_str = readline("$ ");
         if (!line_c_str) {
@@ -30,6 +30,7 @@ int main() {
         if (trimmed_input.empty()) {
             continue;
         }
+
         add_history(trimmed_input.c_str());
 
         std::vector<std::string> tokens = tokenize_input(trimmed_input);
@@ -44,17 +45,16 @@ int main() {
             continue;
         }
 
-        auto run_cmd = [&]() {
-            return execute_command(cmd.pipeline.empty() ? std::vector<std::string>{} : cmd.pipeline[0]);
-        };
+        bool should_exit = false;
+        const auto& command = cmd.pipeline.empty() ? std::vector<std::string>{} : cmd.pipeline[0];
 
-        bool should_exit;
         if (cmd.redirect_type != RedirectType::None) {
             RedirectGuard guard(cmd.redirect_file, cmd.redirect_type);
-            should_exit = run_cmd();
+            should_exit = execute_command(command);
         } else {
-            should_exit = run_cmd();
+            should_exit = execute_command(command);
         }
+
         if (should_exit) {
             break;
         }

@@ -10,51 +10,60 @@
 
 void run_pipeline(const ParsedCommand& cmd) {
     size_t n = cmd.pipeline.size();
-    std::vector<std::array<int, 2>> pipes(n > 1 ? n - 1 : 0);
-
+    if (n == 0) return;
+    if (n == 1) {
+        if (cmd.redirect_type != RedirectType::None) {
+            RedirectGuard guard(cmd.redirect_file, cmd.redirect_type);
+            execute_command(cmd.pipeline[0]);
+        } else {
+            execute_command(cmd.pipeline[0]);
+        }
+        return;
+    }
+    std::vector<std::array<int, 2>> pipes(n - 1);
+    for (size_t i = 0; i < n - 1; ++i) {
+        if (pipe(pipes[i].data()) == -1) {
+            perror("pipe");
+            exit(1);
+        }
+    }
+    std::vector<pid_t> pids;
     for (size_t i = 0; i < n; ++i) {
-        if (i < n - 1) pipe(pipes[i].data());
         pid_t pid = fork();
         if (pid == 0) {
-            // Set up input from previous pipe if not first command
+            // stdin from previous pipe
             if (i > 0) {
-                dup2(pipes[i-1][0], STDIN_FILENO);
+                dup2(pipes[i - 1][0], STDIN_FILENO);
             }
-            // Set up output to next pipe if not last command
+            // stdout to next pipe
             if (i < n - 1) {
                 dup2(pipes[i][1], STDOUT_FILENO);
             }
-            // Close all pipe fds in child
-            for (size_t j = 0; j < pipes.size(); ++j) {
-                close(pipes[j][0]);
-                close(pipes[j][1]);
+            // close all pipes in child
+            for (auto& p : pipes) {
+                close(p[0]);
+                close(p[1]);
             }
             // Only the last command gets redirection
-            const auto& tokens = cmd.pipeline[i];
             if (i == n - 1 && cmd.redirect_type != RedirectType::None) {
                 RedirectGuard guard(cmd.redirect_file, cmd.redirect_type);
-                auto it = (!tokens.empty()) ? command_table.find(tokens[0]) : command_table.end();
-                if (it != command_table.end()) {
-                    it->second(tokens);
-                } else {
-                    run_external_command(tokens);
-                }
+                execute_command(cmd.pipeline[i]);
             } else {
-                auto it = (!tokens.empty()) ? command_table.find(tokens[0]) : command_table.end();
-                if (it != command_table.end()) {
-                    it->second(tokens);
-                } else {
-                    run_external_command(tokens);
-                }
+                execute_command(cmd.pipeline[i]);
             }
-            std::exit(0);
-        }
-        // Parent closes pipe ends it doesn't need
-        if (i > 0) {
-            close(pipes[i-1][0]);
-            close(pipes[i-1][1]);
+            exit(0);
+        } else if (pid > 0) {
+            pids.push_back(pid);
+        } else {
+            perror("fork failed");
         }
     }
-    // Wait for all children
-    for (size_t i = 0; i < n; ++i) wait(nullptr);
+    // Parent: close all pipe fds
+    for (auto& p : pipes) {
+        close(p[0]);
+        close(p[1]);
+    }
+    for (pid_t pid : pids) {
+        waitpid(pid, nullptr, 0);
+    }
 }
