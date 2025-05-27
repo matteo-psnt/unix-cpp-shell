@@ -53,12 +53,21 @@ std::unordered_map<std::string, CommandHandler> command_table = {
     {
         "cd", [](const std::vector<std::string> &args) {
             const char* target = nullptr;
+            std::string path;
             if (args.size() < 2) {
                 // No argument: go to HOME
                 target = std::getenv("HOME");
                 if (!target) target = "/";
             } else {
-                target = args[1].c_str();
+                path = args[1];
+                // Expand ~ to HOME
+                if (!path.empty() && path[0] == '~') {
+                    const char* home = std::getenv("HOME");
+                    if (home) {
+                        path = std::string(home) + path.substr(1);
+                    }
+                }
+                target = path.c_str();
             }
             if (chdir(target) != 0) {
                 std::cerr << "cd: " << target << ": No such file or directory" << std::endl;
