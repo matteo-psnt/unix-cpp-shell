@@ -39,13 +39,13 @@ int main() {
 
         ParsedCommand cmd = parse_redirection(std::move(tokens));
 
-        if (!cmd.piped_tokens.empty()) {
-            run_piped_commands(cmd);
+        if (cmd.pipeline.size() > 1) {
+            run_pipeline(cmd);
             continue;
         }
 
         auto run_cmd = [&]() {
-            return execute_command(cmd.tokens);
+            return execute_command(cmd.pipeline.empty() ? std::vector<std::string>{} : cmd.pipeline[0]);
         };
 
         bool should_exit;

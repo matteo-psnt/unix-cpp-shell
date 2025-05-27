@@ -16,10 +16,9 @@ enum class RedirectType {
 
 
 struct ParsedCommand {
-    std::vector<std::string> tokens;
+    std::vector<std::vector<std::string>> pipeline; // Each command in the pipeline
     std::string redirect_file;
     RedirectType redirect_type = RedirectType::None;
-    std::vector<std::string> piped_tokens;
 };
 
 ParsedCommand parse_redirection(std::vector<std::string> tokens);

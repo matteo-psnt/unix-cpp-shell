@@ -3,7 +3,7 @@ project(shell-cpp CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF) 
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 file(GLOB_RECURSE SOURCE_FILES src/*.cpp src/*.h)
 # Remove test files from main source list
@@ -28,7 +28,7 @@ enable_testing()
 file(GLOB TEST_SOURCES tests/*_test.cpp)
 
 # Test executable and linking
-add_executable(shell_tests ${TEST_SOURCES} src/shell_utils.cpp src/command_table.cpp src/completion.cpp src/command_parser.cpp src/pipe_utils.cpp)
+add_executable(shell_tests ${TEST_SOURCES} src/shell_utils.cpp src/command_table.cpp src/completion.cpp src/command_parser.cpp src/pipe_utils.cpp src/redirect_guard.cpp)
 target_include_directories(shell_tests PRIVATE src)
 target_link_libraries(shell_tests PRIVATE gtest_main ${READLINE_LIB} ${NCURSES_LIB})
 
