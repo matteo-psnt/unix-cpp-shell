@@ -8,7 +8,7 @@ RedirectGuard::RedirectGuard(const std::string& file, RedirectType type) : type_
     if (file.empty() || type == RedirectType::None) return;
 
     int flags = O_WRONLY | O_CREAT;
-    if (type == RedirectType::StdoutAppend || type == RedirectType::BothAppend) {
+    if (type == RedirectType::StdoutAppend || type == RedirectType::BothAppend || type == RedirectType::StderrAppend) {
         flags |= O_APPEND;
     } else if (type != RedirectType::Stdin) {
         flags |= O_TRUNC;
@@ -32,7 +32,7 @@ RedirectGuard::RedirectGuard(const std::string& file, RedirectType type) : type_
             saved_stdout_ = dup(STDOUT_FILENO);
             dup2(out_fd_, STDOUT_FILENO);
         }
-        if (type == RedirectType::Stderr || type == RedirectType::Both || type == RedirectType::BothAppend) {
+        if (type == RedirectType::Stderr || type == RedirectType::Both || type == RedirectType::BothAppend || type == RedirectType::StderrAppend) {
             saved_stderr_ = dup(STDERR_FILENO);
             dup2(out_fd_, STDERR_FILENO);
         }

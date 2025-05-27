@@ -12,6 +12,8 @@ ParsedCommand parse_redirection(std::vector<std::string> tokens) {
             result.redirect_type = RedirectType::Both;
         } else if (op == ">>" || op == "1>>") {
             result.redirect_type = RedirectType::StdoutAppend;
+        } else if (op == "2>>") {
+            result.redirect_type = RedirectType::StderrAppend;
         } else if (op == ">" || op == "1>") {
             result.redirect_type = RedirectType::Stdout;
         } else if (op == "2>") {

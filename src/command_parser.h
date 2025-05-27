@@ -9,6 +9,7 @@ enum class RedirectType {
     Stderr,
     Both,
     StdoutAppend,
+    StderrAppend,
     Stdin,
     BothAppend
 };
