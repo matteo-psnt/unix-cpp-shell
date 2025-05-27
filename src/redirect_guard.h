@@ -11,6 +11,7 @@ public:
 private:
     int saved_stdout_ = -1;
     int saved_stderr_ = -1;
+    int saved_stdin_ = -1;
     int out_fd_ = -1;
     RedirectType type_;
 };
