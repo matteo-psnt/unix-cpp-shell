@@ -33,7 +33,6 @@ std::vector<std::string> tokenize_input(const std::string& input) {
                 // Start of single-quoted segment
                 size_t end = input.find('\'', i + 1);
                 if (end == std::string::npos) {
-                    // No closing quote, take rest of line as literal
                     token += input.substr(i + 1);
                     i = input.size();
                     break;
@@ -41,10 +40,31 @@ std::vector<std::string> tokenize_input(const std::string& input) {
                     token += input.substr(i + 1, end - i - 1);
                     i = end + 1;
                 }
+            } else if (input[i] == '"') {
+                // Start of double-quoted segment
+                ++i; // skip opening quote
+                while (i < input.size()) {
+                    if (input[i] == '\\' && i + 1 < input.size()) {
+                        char next = input[i + 1];
+                        if (next == '\\' || next == '"' || next == '$' || next == '\n') {
+                            token += next;
+                            i += 2;
+                        } else {
+                            token += '\\';
+                            ++i;
+                        }
+                    } else if (input[i] == '"') {
+                        ++i;
+                        break;
+                    } else {
+                        token += input[i];
+                        ++i;
+                    }
+                }
             } else {
                 // Unquoted segment
                 size_t start = i;
-                while (i < input.size() && !std::isspace(input[i]) && input[i] != '\'') ++i;
+                while (i < input.size() && !std::isspace(input[i]) && input[i] != '\'' && input[i] != '"') ++i;
                 token += input.substr(start, i - start);
             }
         }
