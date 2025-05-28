@@ -97,4 +97,18 @@ std::unordered_map<std::string, CommandHandler> command_table = {
             return false;
         }
     },
+    {
+        "which", [](const std::vector<std::string>& args) {
+            if (args.size() < 2) {
+                std::cerr << "which: missing operand\n";
+                return false;
+            }
+            std::string path = find_executable(args[1]);
+            if (!path.empty())
+                std::cout << path << std::endl;
+            else
+                std::cerr << args[1] << ": command not found\n";
+            return false;
+        }
+    }
 };
