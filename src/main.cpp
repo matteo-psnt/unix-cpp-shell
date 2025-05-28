@@ -18,7 +18,16 @@ int main() {
 
     // Main shell loop: read, parse, and execute commands
     while (true) {
-        char* line_c_str = readline("$ ");
+        // Show only the current folder name in the prompt
+        char cwd[4096];
+        std::string prompt = "$ ";
+        if (getcwd(cwd, sizeof(cwd)) != nullptr) {
+            std::string full_path = cwd;
+            size_t last_slash = full_path.find_last_of("/");
+            std::string folder = (last_slash == std::string::npos) ? full_path : full_path.substr(last_slash + 1);
+            prompt = folder + " $ ";
+        }
+        char* line_c_str = readline(prompt.c_str());
         if (!line_c_str) {
             std::cout << "exit" << std::endl;
             break;
