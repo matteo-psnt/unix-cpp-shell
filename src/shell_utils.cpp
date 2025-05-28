@@ -70,6 +70,11 @@ std::vector<std::string> tokenize_input(const std::string& input) {
             }
         }
         if (!token.empty()) {
+            // Environment variable expansion: $VAR
+            if (token[0] == '$' && token.size() > 1) {
+                const char* val = std::getenv(token.c_str() + 1);
+                token = val ? val : "";
+            }
             tokens.push_back(token);
         }
     }
