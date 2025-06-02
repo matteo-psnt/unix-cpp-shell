@@ -125,3 +125,18 @@ TEST(TokenizeInputTest, SingleAndDoubleQuotedAndUnquotedSegments) {
     // Escaped single quote in unquoted context
     EXPECT_EQ(tokenize_input("echo foo\\'bar"), (V{"echo", "foo\'bar"}));
 }
+
+TEST(RunExternalCommandTest, RunsTrueSuccessfully) {
+    // Should not throw or crash, and should not print error
+    testing::internal::CaptureStderr();
+    run_external_command({"true"});
+    std::string err = testing::internal::GetCapturedStderr();
+    EXPECT_TRUE(err.empty());
+}
+
+TEST(RunExternalCommandTest, NonexistentCommandPrintsError) {
+    testing::internal::CaptureStderr();
+    run_external_command({"definitelynotacommand12345"});
+    std::string err = testing::internal::GetCapturedStderr();
+    EXPECT_NE(err.find("command not found"), std::string::npos);
+}
