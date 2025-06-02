@@ -8,15 +8,17 @@
 #include <array>
 
 
+bool (*execute_command_ptr)(const std::vector<std::string>&) = execute_command;
+
 void run_pipeline(const ParsedCommand& cmd) {
     size_t n = cmd.pipeline.size();
     if (n == 0) return;
     if (n == 1) {
         if (cmd.redirect_type != RedirectType::None) {
             RedirectGuard guard(cmd.redirect_file, cmd.redirect_type);
-            execute_command(cmd.pipeline[0]);
+            execute_command_ptr(cmd.pipeline[0]);
         } else {
-            execute_command(cmd.pipeline[0]);
+            execute_command_ptr(cmd.pipeline[0]);
         }
         return;
     }
@@ -47,9 +49,9 @@ void run_pipeline(const ParsedCommand& cmd) {
             // Only the last command gets redirection
             if (i == n - 1 && cmd.redirect_type != RedirectType::None) {
                 RedirectGuard guard(cmd.redirect_file, cmd.redirect_type);
-                execute_command(cmd.pipeline[i]);
+                execute_command_ptr(cmd.pipeline[i]);
             } else {
-                execute_command(cmd.pipeline[i]);
+                execute_command_ptr(cmd.pipeline[i]);
             }
             exit(0);
         } else if (pid > 0) {

@@ -4,36 +4,36 @@
 #include <gtest/gtest.h>
 #include "shell_utils.h"
 
-TEST(trim_whitespace, removes_leading_and_trailing_spaces) {
+TEST(TrimWhitespaceTest, RemovesLeadingAndTrailingSpaces) {
     EXPECT_EQ(trim_whitespace("  hello  "), "hello");
     EXPECT_EQ(trim_whitespace("\thello\n"), "hello");
     EXPECT_EQ(trim_whitespace("hello"), "hello");
     EXPECT_EQ(trim_whitespace("   "), "");
 }
 
-TEST(find_executable, finds_bin_ls) {
+TEST(FindExecutableTest, FindsBinLs) {
     std::string path = find_executable("ls");
     EXPECT_FALSE(path.empty());
 }
 
-TEST(find_executable, returns_empty_for_nonexistent) {
+TEST(FindExecutableTest, ReturnsEmptyForNonexistent) {
     std::string path = find_executable("notacommand12345");
     EXPECT_TRUE(path.empty());
 }
 
-TEST(find_executable, finds_with_path) {
+TEST(FindExecutableTest, FindsWithPath) {
     // /bin/ls should exist on macOS
     std::string path = find_executable("/bin/ls");
     EXPECT_FALSE(path.empty());
     EXPECT_EQ(path, "/bin/ls");
 }
 
-TEST(find_executable, returns_empty_for_nonexistent_path) {
+TEST(FindExecutableTest, ReturnsEmptyForNonexistentPath) {
     std::string path = find_executable("/does/not/exist");
     EXPECT_TRUE(path.empty());
 }
 
-TEST(execute_command, built_in_echo) {
+TEST(ExecuteCommandTest, BuiltInEcho) {
     std::stringstream buffer;
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
     std::vector<std::string> tokens = {"echo", "hello", "world"};
@@ -44,7 +44,7 @@ TEST(execute_command, built_in_echo) {
     EXPECT_NE(output.find("hello world"), std::string::npos);
 }
 
-TEST(execute_command, non_existent_command) {
+TEST(ExecuteCommandTest, NonExistentCommand) {
     std::stringstream err_buffer;
     std::streambuf* old_err = std::cerr.rdbuf(err_buffer.rdbuf());
     std::vector<std::string> tokens = {"definitelynotacommand12345"};
@@ -55,7 +55,7 @@ TEST(execute_command, non_existent_command) {
     EXPECT_NE(err_output.find("command not found"), std::string::npos);
 }
 
-TEST(tokenize_input, single_and_double_quoted_and_unquoted_segments) {
+TEST(TokenizeInputTest, SingleAndDoubleQuotedAndUnquotedSegments) {
     using V = std::vector<std::string>;
     // Simple single-quoted
     EXPECT_EQ(tokenize_input("echo 'hello world'"), (V{"echo", "hello world"}));

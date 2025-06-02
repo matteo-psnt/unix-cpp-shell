@@ -4,7 +4,7 @@
 #include "shell_utils.h"
 #include "command_table.h"
 
-TEST(command_table, has_exit_and_echo) {
+TEST(CommandTableTest, HasExitAndEcho) {
     EXPECT_TRUE(command_table.count("exit"));
     EXPECT_TRUE(command_table.count("echo"));
     EXPECT_TRUE(command_table.count("type"));
@@ -12,7 +12,7 @@ TEST(command_table, has_exit_and_echo) {
     EXPECT_TRUE(command_table.count("cd"));
 }
 
-TEST(command_table, type_builtin) {
+TEST(CommandTableTest, TypeBuiltin) {
     std::stringstream buffer;
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
     std::vector<std::string> tokens = {"type", "echo"};
@@ -22,7 +22,7 @@ TEST(command_table, type_builtin) {
     EXPECT_NE(output.find("is a shell builtin"), std::string::npos);
 }
 
-TEST(command_table, type_external) {
+TEST(CommandTableTest, TypeExternal) {
     std::stringstream buffer;
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
     std::vector<std::string> tokens = {"type", "ls"};
@@ -32,7 +32,7 @@ TEST(command_table, type_external) {
     EXPECT_NE(output.find("is /"), std::string::npos); // Should print path
 }
 
-TEST(command_table, type_nonexistent) {
+TEST(CommandTableTest, TypeNonexistent) {
     std::stringstream buffer;
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
     std::vector<std::string> tokens = {"type", "notacommand12345"};
@@ -42,7 +42,7 @@ TEST(command_table, type_nonexistent) {
     EXPECT_NE(output.find(": not found"), std::string::npos);
 }
 
-TEST(command_table, pwd_prints_current_directory) {
+TEST(CommandTableTest, PwdPrintsCurrentDirectory) {
     std::stringstream buffer;
     std::streambuf* old = std::cout.rdbuf(buffer.rdbuf());
     std::vector<std::string> tokens = {"pwd"};
@@ -55,7 +55,7 @@ TEST(command_table, pwd_prints_current_directory) {
     EXPECT_NE(output.find(cwd), std::string::npos);
 }
 
-TEST(command_table, cd_changes_directory) {
+TEST(CommandTableTest, CdChangesDirectory) {
     char cwd[4096];
     ASSERT_TRUE(getcwd(cwd, sizeof(cwd)) != nullptr);
     std::string old_dir = cwd;

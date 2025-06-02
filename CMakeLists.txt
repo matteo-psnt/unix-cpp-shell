@@ -34,7 +34,11 @@ enable_testing()
 file(GLOB TEST_SOURCES tests/*_test.cpp)
 
 # Test executable and linking
-add_executable(shell_tests ${TEST_SOURCES} src/shell_utils.cpp src/command_table.cpp src/completion.cpp src/command_parser.cpp src/pipe_utils.cpp src/redirect_guard.cpp)
+# Gather all source files except main.cpp for tests
+file(GLOB_RECURSE NON_MAIN_SOURCES src/*.cpp)
+list(FILTER NON_MAIN_SOURCES EXCLUDE REGEX ".*/main.cpp$")
+
+add_executable(shell_tests ${TEST_SOURCES} ${NON_MAIN_SOURCES})
 target_include_directories(shell_tests PRIVATE src)
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(readline REQUIRED IMPORTED_TARGET readline)
