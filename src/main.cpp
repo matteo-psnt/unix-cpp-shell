@@ -1,13 +1,13 @@
 #include <iostream>
-#include <vector>
-#include <string>
-#include <readline/readline.h>
 #include <readline/history.h>
-#include "shell_utils.h"
-#include "completion.h"
+#include <readline/readline.h>
+#include <string>
+#include <vector>
 #include "command_parser.h"
-#include "redirect_guard.h"
+#include "completion.h"
 #include "pipe_utils.h"
+#include "redirect_guard.h"
+#include "shell_utils.h"
 
 int main() {
     // Configure readline to use our custom completer

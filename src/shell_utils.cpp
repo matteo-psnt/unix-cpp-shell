@@ -1,17 +1,16 @@
 #include "shell_utils.h"
-#include "command_table.h"
-#include <sys/wait.h>
+#include <filesystem>
 #include <iostream>
 #include <sstream>
-#include <vector>
 #include <string>
-#include <filesystem>
+#include <sys/wait.h>
+#include <vector>
+#include "command_table.h"
 
 std::string trim_whitespace(const std::string& str) {
     const std::string whitespace = " \t\n\r\f\v";
     const auto strBegin = str.find_first_not_of(whitespace);
-    if (strBegin == std::string::npos)
-        return "";
+    if (strBegin == std::string::npos) return "";
     const auto strEnd = str.find_last_not_of(whitespace);
     const auto strRange = strEnd - strBegin + 1;
     return str.substr(strBegin, strRange);
@@ -22,7 +21,8 @@ std::vector<std::string> tokenize_input(const std::string& input) {
     size_t i = 0;
     while (i < input.size()) {
         // Skip whitespace between tokens
-        while (i < input.size() && std::isspace(input[i])) ++i;
+        while (i < input.size() && std::isspace(input[i]))
+            ++i;
         if (i >= input.size()) break;
 
         std::string token;
@@ -81,7 +81,7 @@ std::vector<std::string> tokenize_input(const std::string& input) {
     return tokens;
 }
 
-std::string find_executable(const std::string &cmd_name) {
+std::string find_executable(const std::string& cmd_name) {
     namespace fs = std::filesystem;
     if (cmd_name.find('/') != std::string::npos) {
         fs::path cmd_path(cmd_name);
@@ -94,7 +94,7 @@ std::string find_executable(const std::string &cmd_name) {
         }
         return "";
     }
-    const char *path_env_p = std::getenv("PATH");
+    const char* path_env_p = std::getenv("PATH");
     if (!path_env_p) {
         return "";
     }
@@ -117,7 +117,7 @@ std::string find_executable(const std::string &cmd_name) {
     return "";
 }
 
-void run_external_command(const std::vector<std::string> &tokens) {
+void run_external_command(const std::vector<std::string>& tokens) {
     if (tokens.empty()) {
         std::cerr << "Error: No command provided for external execution." << std::endl;
         return;
@@ -133,10 +133,10 @@ void run_external_command(const std::vector<std::string> &tokens) {
         return;
     }
     if (pid == 0) {
-        std::vector<char *> argv_c;
+        std::vector<char*> argv_c;
         argv_c.reserve(tokens.size() + 1);
-        for (const auto &token : tokens) {
-            argv_c.push_back(const_cast<char *>(token.c_str()));
+        for (const auto& token : tokens) {
+            argv_c.push_back(const_cast<char*>(token.c_str()));
         }
         argv_c.push_back(nullptr);
         execv(exec_path_str.c_str(), argv_c.data());
@@ -150,7 +150,7 @@ void run_external_command(const std::vector<std::string> &tokens) {
     }
 }
 
-bool execute_command(const std::vector<std::string> &tokens) {
+bool execute_command(const std::vector<std::string>& tokens) {
     if (tokens.empty()) return false;
     const std::string& command_name = tokens[0];
     auto it = command_table.find(command_name);

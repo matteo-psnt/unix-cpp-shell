@@ -1,7 +1,7 @@
-#include <vector>
-#include <sstream>
-#include <iostream>
 #include <gtest/gtest.h>
+#include <iostream>
+#include <sstream>
+#include <vector>
 #include "shell_utils.h"
 
 TEST(TrimWhitespaceTest, RemovesLeadingAndTrailingSpaces) {

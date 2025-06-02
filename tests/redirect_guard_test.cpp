@@ -1,18 +1,18 @@
 #include <gtest/gtest.h>
+#include <fcntl.h>
 #include <fstream>
 #include <string>
 #include <unistd.h>
-#include <fcntl.h>
-#include "redirect_guard.h"
 #include "command_parser.h"
+#include "redirect_guard.h"
 
 namespace {
 
-std::string read_file(const std::string& path) {
-    std::ifstream f(path);
-    std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-    return content;
-}
+    std::string read_file(const std::string& path) {
+        std::ifstream f(path);
+        std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+        return content;
+    }
 
 } // namespace
 

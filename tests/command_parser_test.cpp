@@ -1,7 +1,7 @@
-#include "gtest/gtest.h"
-#include "command_parser.h"
-#include <vector>
+#include <gtest/gtest.h>
 #include <string>
+#include <vector>
+#include "command_parser.h"
 
 TEST(CommandParserTest, StdoutRedirection) {
     std::vector<std::string> tokens = {"echo", "foo", ">", "file.txt"};

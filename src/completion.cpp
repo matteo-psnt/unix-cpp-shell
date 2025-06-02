@@ -1,16 +1,16 @@
 #include "completion.h"
-#include "command_table.h"
-#include <readline/readline.h>
 #include <cstdlib>
-#include <string>
-#include <vector>
+#include <cstring>
+#include <algorithm>
+#include <filesystem>
+#include <optional>
+#include <readline/readline.h>
 #include <set>
 #include <sstream>
-#include <filesystem>
-#include <cstring>
+#include <string>
 #include <unistd.h>
-#include <algorithm>
-#include <optional>
+#include <vector>
+#include "command_table.h"
 
 namespace fs = std::filesystem;
 
@@ -49,7 +49,8 @@ void add_path_executables_matching_prefix(const std::string& prefix, std::set<st
     }
 }
 
-// Add path/file completions based on prefix (supporting ~ expansion and directories)
+// Add path/file completions based on prefix (supporting ~ expansion and
+// directories)
 void add_file_completions(const std::string& prefix, std::set<std::string>& out) {
     std::error_code ec;
     fs::path path_prefix(prefix);
@@ -88,7 +89,6 @@ void add_file_completions(const std::string& prefix, std::set<std::string>& out)
         out.insert(result);
     }
 }
-
 
 char* command_generator(const char* text, int state) {
     static std::vector<std::string> matches;

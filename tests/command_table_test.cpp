@@ -1,8 +1,8 @@
-#include <sstream>
-#include <iostream>
 #include <gtest/gtest.h>
-#include "shell_utils.h"
+#include <iostream>
+#include <sstream>
 #include "command_table.h"
+#include "shell_utils.h"
 
 TEST(CommandTableTest, HasExitAndEcho) {
     EXPECT_TRUE(command_table.count("exit"));

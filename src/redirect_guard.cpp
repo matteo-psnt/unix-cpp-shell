@@ -1,8 +1,8 @@
 #include "redirect_guard.h"
-#include "command_parser.h"  // For RedirectType enum
-#include <unistd.h>
-#include <fcntl.h>
 #include <cstdio>
+#include <fcntl.h>
+#include <unistd.h>
+#include "command_parser.h" // For RedirectType enum
 
 RedirectGuard::RedirectGuard(const std::string& file, RedirectType type) : type_(type) {
     if (file.empty() || type == RedirectType::None) return;
@@ -28,11 +28,13 @@ RedirectGuard::RedirectGuard(const std::string& file, RedirectType type) : type_
             perror("open for redirection");
             return;
         }
-        if (type == RedirectType::Stdout || type == RedirectType::StdoutAppend || type == RedirectType::Both || type == RedirectType::BothAppend) {
+        if (type == RedirectType::Stdout || type == RedirectType::StdoutAppend || type == RedirectType::Both ||
+            type == RedirectType::BothAppend) {
             saved_stdout_ = dup(STDOUT_FILENO);
             dup2(out_fd_, STDOUT_FILENO);
         }
-        if (type == RedirectType::Stderr || type == RedirectType::Both || type == RedirectType::BothAppend || type == RedirectType::StderrAppend) {
+        if (type == RedirectType::Stderr || type == RedirectType::Both || type == RedirectType::BothAppend ||
+            type == RedirectType::StderrAppend) {
             saved_stderr_ = dup(STDERR_FILENO);
             dup2(out_fd_, STDERR_FILENO);
         }

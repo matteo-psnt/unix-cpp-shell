@@ -1,39 +1,35 @@
 #include <gtest/gtest.h>
-#include <vector>
-#include <string>
 #include <fstream>
+#include <functional>
+#include <string>
 #include <unistd.h>
+#include <vector>
+#include "command_parser.h"
 #include "pipe_utils.h"
 #include "shell_utils.h"
-#include "command_parser.h"
 
-// Mock execute_command for testing
-#include <functional>
 static std::vector<std::vector<std::string>> executed_commands;
 bool mock_execute_command(const std::vector<std::string>& tokens) {
     executed_commands.push_back(tokens);
     return false;
 }
 
-
 // Linkage for the real function pointer
 extern bool (*execute_command_ptr)(const std::vector<std::string>&);
 namespace {
-struct ExecuteCommandMocker {
-    ExecuteCommandMocker() {
-        executed_commands.clear();
-        execute_command_ptr = mock_execute_command;
-    }
-    ~ExecuteCommandMocker() {
-        execute_command_ptr = execute_command;
-    }
-};
-}
+    struct ExecuteCommandMocker {
+        ExecuteCommandMocker() {
+            executed_commands.clear();
+            execute_command_ptr = mock_execute_command;
+        }
+        ~ExecuteCommandMocker() { execute_command_ptr = execute_command; }
+    };
+} // namespace
 
 TEST(PipeUtilsTest, SingleCommandNoRedirection) {
     ExecuteCommandMocker _;
     ParsedCommand cmd;
-    cmd.pipeline = { {"echo", "foo"} };
+    cmd.pipeline = {{"echo", "foo"}};
     run_pipeline(cmd);
     ASSERT_EQ(executed_commands.size(), 1);
     EXPECT_EQ(executed_commands[0], std::vector<std::string>({"echo", "foo"}));
@@ -42,7 +38,7 @@ TEST(PipeUtilsTest, SingleCommandNoRedirection) {
 TEST(PipeUtilsTest, SingleCommandWithRedirection) {
     ExecuteCommandMocker _;
     ParsedCommand cmd;
-    cmd.pipeline = { {"echo", "bar"} };
+    cmd.pipeline = {{"echo", "bar"}};
     cmd.redirect_file = "test_output.txt";
     cmd.redirect_type = RedirectType::Stdout;
     run_pipeline(cmd);
@@ -65,7 +61,7 @@ void run_pipeline_no_fork(const ParsedCommand& cmd) {
 TEST(PipeUtilsTest, PipelineMultipleCommands) {
     ExecuteCommandMocker _;
     ParsedCommand cmd;
-    cmd.pipeline = { {"echo", "foo"}, {"grep", "f"}, {"wc", "-l"} };
+    cmd.pipeline = {{"echo", "foo"}, {"grep", "f"}, {"wc", "-l"}};
     run_pipeline_no_fork(cmd);
     ASSERT_EQ(executed_commands.size(), 3);
     EXPECT_EQ(executed_commands[0], std::vector<std::string>({"echo", "foo"}));

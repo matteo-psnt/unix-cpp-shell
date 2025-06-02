@@ -1,12 +1,11 @@
 #include "pipe_utils.h"
-#include "shell_utils.h"
-#include "redirect_guard.h"
-#include "command_table.h"
-#include <unistd.h>
-#include <sys/wait.h>
 #include <cstdlib>
 #include <array>
-
+#include <sys/wait.h>
+#include <unistd.h>
+#include "command_table.h"
+#include "redirect_guard.h"
+#include "shell_utils.h"
 
 bool (*execute_command_ptr)(const std::vector<std::string>&) = execute_command;
 

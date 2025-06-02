@@ -2,9 +2,8 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "completion.h"
 #include "command_table.h"
-
+#include "completion.h"
 
 // Test: built-in command completion
 TEST(CompletionTest, BuiltinCommandCompletion) {
@@ -38,7 +37,10 @@ TEST(CompletionTest, FileCompletionTilde) {
         // Create a file in home for the test
         std::string testfile = std::string(home) + "/.completion_test_file";
         FILE* f = fopen(testfile.c_str(), "w");
-        if (f) { fputs("test", f); fclose(f); }
+        if (f) {
+            fputs("test", f);
+            fclose(f);
+        }
         add_file_completions("~/.completion_test_", matches);
         bool found = false;
         for (const auto& m : matches) {

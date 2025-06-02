@@ -1,0 +1,75 @@
+# Base Style
+BasedOnStyle: LLVM
+Standard: c++20
+
+# Indentation and Tabs
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+
+# Includes
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex: '^<gtest/gtest\.h>$'        # GoogleTest headers
+    Priority: 1
+    SortPriority: 1
+    CaseSensitive: true
+
+  - Regex: '^<c[^>]*>$'                # e.g., <cstdlib>, <cstring>
+    Priority: 2
+    SortPriority: 2
+    CaseSensitive: false
+
+  - Regex: '^<[^>]*>$'                 # e.g., <vector>, <string>
+    Priority: 3
+    SortPriority: 3
+    CaseSensitive: false
+
+  - Regex: '^"[^"]+\.h"$'              # Project includes
+    Priority: 4
+    SortPriority: 4
+    CaseSensitive: true
+SortIncludes: true
+
+# Braces and control statements
+BreakBeforeBraces: Attach
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Inline
+
+# Spaces and padding
+SpacesBeforeTrailingComments: 1
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpaceAfterCStyleCast: true
+
+# Namespace handling
+NamespaceIndentation: All
+IndentNamespace: true
+
+# Pointer alignment
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# Alignment
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: true
+AlignTrailingComments: true
+
+# Formatting enforcement
+AlwaysBreakAfterReturnType: None
+BreakBeforeBinaryOperators: None
+BreakAfterReturnType: None
+BreakConstructorInitializers: AfterColon
+PenaltyExcessCharacter: 1000000
+
+# Comments
+CommentPragmas: '^ IWYU pragma:'
+
+# Misc
+ReflowComments: true
+SortUsingDeclarations: true
+FixNamespaceComments: true
