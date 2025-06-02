@@ -71,3 +71,31 @@ TEST(CommandTableTest, CdChangesDirectory) {
     ASSERT_TRUE(getcwd(new_cwd, sizeof(new_cwd)) != nullptr);
     EXPECT_EQ(std::string(new_cwd), old_dir);
 }
+
+TEST(CommandTableTest, CdDashGoesToPreviousDirectory) {
+    char cwd[4096];
+    ASSERT_TRUE(getcwd(cwd, sizeof(cwd)) != nullptr);
+    std::string start_dir = cwd;
+    // Go to /tmp
+    std::vector<std::string> to_tmp = {"cd", "/tmp"};
+    execute_command(to_tmp);
+    char tmp_cwd[4096];
+    ASSERT_TRUE(getcwd(tmp_cwd, sizeof(tmp_cwd)) != nullptr);
+    std::string tmp_dir = tmp_cwd;
+    EXPECT_EQ(tmp_dir, "/private/tmp");
+    // Go back to start_dir using cd -
+    std::vector<std::string> cd_dash = {"cd", "-"};
+    execute_command(cd_dash);
+    char back_cwd[4096];
+    ASSERT_TRUE(getcwd(back_cwd, sizeof(back_cwd)) != nullptr);
+    EXPECT_EQ(std::string(back_cwd), start_dir);
+    // Go to /tmp again using cd -
+    execute_command(cd_dash);
+    ASSERT_TRUE(getcwd(back_cwd, sizeof(back_cwd)) != nullptr);
+    EXPECT_EQ(std::string(back_cwd), "/private/tmp");
+    // Restore original directory
+    std::vector<std::string> restore = {"cd", start_dir};
+    execute_command(restore);
+    ASSERT_TRUE(getcwd(back_cwd, sizeof(back_cwd)) != nullptr);
+    EXPECT_EQ(std::string(back_cwd), start_dir);
+}

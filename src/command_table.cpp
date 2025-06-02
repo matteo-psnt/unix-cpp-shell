@@ -74,27 +74,41 @@ std::unordered_map<std::string, CommandHandler> command_table = {
     },
     {
         "cd", [](const std::vector<std::string> &args) {
+            static std::string prev_dir;
             const char* target = nullptr;
-       std::string path;
-       if (args.size() < 2) {
-         // No argument: go to HOME
-         target = std::getenv("HOME");
+            std::string path;
+            char cwd[4096];
+            if (getcwd(cwd, sizeof(cwd)) == nullptr) {
+                std::perror("getcwd");
+                return false;
+            }
+            if (args.size() < 2) {
+                // No argument: go to HOME
+                target = std::getenv("HOME");
                 if (!target) target = "/";
-       } else {
-         path = args[1];
-         // Expand ~ to HOME
-         if (!path.empty() && path[0] == '~') {
-           const char *home = std::getenv("HOME");
-           if (home) {
-             path = std::string(home) + path.substr(1);
-           }
-         }
-         target = path.c_str();
-       }
-       if (chdir(target) != 0) {
+            } else if (args[1] == "-") {
+                if (prev_dir.empty()) {
+                    return false;
+                }
+                target = prev_dir.c_str();
+                std::cout << target << std::endl;
+            } else {
+                path = args[1];
+                // Expand ~ to HOME
+                if (!path.empty() && path[0] == '~') {
+                    const char *home = std::getenv("HOME");
+                    if (home) {
+                        path = std::string(home) + path.substr(1);
+                    }
+                }
+                target = path.c_str();
+            }
+            if (chdir(target) != 0) {
                 std::cerr << "cd: " << target << ": No such file or directory" << std::endl;
-       }
-       return false;
+            } else {
+                prev_dir = cwd;
+            }
+            return false;
         }
     },
     {
