@@ -1,5 +1,7 @@
 # unix-cpp-shell
 
+![shell demo](./docs/shell-demo.svg)
+
 A minimal, educational UNIX-style shell written in modern C++ (C++23).
 Supports command execution, I/O redirection (`>`, `>>`, `<`), pipelines (`|`), basic built-ins (`cd`, `pwd`, `echo`, `exit`, etc.), and tab completion.
 
