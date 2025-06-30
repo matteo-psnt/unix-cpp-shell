@@ -21,7 +21,6 @@ Supports command execution, I/O redirection (`>`, `>>`, `<`), pipelines (`|`), b
 
 * CMake 3.15 or higher
 * C++23-compatible compiler
-* vcpkg (for dependency management)
 
 ### Build and Test
 
@@ -30,7 +29,13 @@ Supports command execution, I/O redirection (`>`, `>>`, `<`), pipelines (`|`), b
 git clone https://github.com/matteo-psnt/unix-shell.git
 cd unix-shell
 
-# Install dependencies via vcpkg (readline, ncurses)
+# Pull in vcpkg
+git clone https://github.com/microsoft/vcpkg.git vcpkg
+
+# Make scripts executable
+chmod +x ./vcpkg/bootstrap-vcpkg.sh run_tests.sh run_shell.sh
+
+# Bootstrap vcpkg and install dependencies
 ./vcpkg/bootstrap-vcpkg.sh
 ./vcpkg/vcpkg install
 
@@ -48,9 +53,9 @@ cd unix-shell
 
 ```plain
 src/                 - Shell source code
-tests/               - GoogleTest-based unit tests
-run_tests.sh         - Build and run tests
-run_shell.sh         - Build and run the shell interactively
-CMakeLists.txt       - CMake configuration
-vcpkg.json           - Dependencies (readline, ncurses)
+tests/               - GoogleTest unit tests
+run_tests.sh         - Build & run all tests
+run_shell.sh         - Build & start the shell interactively
+CMakeLists.txt       - Build configuration
+vcpkg.json           - vcpkg manifest (readline, ncurses)
 ```
