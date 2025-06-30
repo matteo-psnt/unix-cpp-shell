@@ -1,4 +1,4 @@
-#!/bin/zsh
+#!/bin/sh
 # Run all CTest-based unit tests for the unix-shell project
 
 # Ensure we are in the project root (the directory containing this script)

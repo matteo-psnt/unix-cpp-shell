@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <filesystem>
 #include "shell_utils.h"
 
 TEST(TrimWhitespaceTest, RemovesLeadingAndTrailingSpaces) {
@@ -22,10 +23,10 @@ TEST(FindExecutableTest, ReturnsEmptyForNonexistent) {
 }
 
 TEST(FindExecutableTest, FindsWithPath) {
-    // /bin/ls should exist on macOS
-    std::string path = find_executable("/bin/ls");
+    std::filesystem::path p("/bin/ls");
+    std::string path = find_executable(p.string());
     EXPECT_FALSE(path.empty());
-    EXPECT_EQ(path, "/bin/ls");
+    EXPECT_EQ(path, std::filesystem::canonical(p).string());
 }
 
 TEST(FindExecutableTest, ReturnsEmptyForNonexistentPath) {

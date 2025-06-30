@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <sstream>
+#include <filesystem>
 #include "command_table.h"
 #include "shell_utils.h"
 
@@ -64,7 +65,8 @@ TEST(CommandTableTest, CdChangesDirectory) {
     execute_command(tokens);
     char new_cwd[4096];
     ASSERT_TRUE(getcwd(new_cwd, sizeof(new_cwd)) != nullptr);
-    EXPECT_EQ(std::string(new_cwd), "/private/tmp");
+    std::string expected_tmp = std::filesystem::canonical("/tmp").string();
+    EXPECT_EQ(std::string(new_cwd), expected_tmp);
     // Change back to original directory for test isolation
     std::vector<std::string> back = {"cd", old_dir};
     execute_command(back);
@@ -82,7 +84,8 @@ TEST(CommandTableTest, CdDashGoesToPreviousDirectory) {
     char tmp_cwd[4096];
     ASSERT_TRUE(getcwd(tmp_cwd, sizeof(tmp_cwd)) != nullptr);
     std::string tmp_dir = tmp_cwd;
-    EXPECT_EQ(tmp_dir, "/private/tmp");
+    std::string expected_tmp = std::filesystem::canonical("/tmp").string();
+    EXPECT_EQ(tmp_dir, expected_tmp);
     // Go back to start_dir using cd -
     std::vector<std::string> cd_dash = {"cd", "-"};
     execute_command(cd_dash);
@@ -92,7 +95,7 @@ TEST(CommandTableTest, CdDashGoesToPreviousDirectory) {
     // Go to /tmp again using cd -
     execute_command(cd_dash);
     ASSERT_TRUE(getcwd(back_cwd, sizeof(back_cwd)) != nullptr);
-    EXPECT_EQ(std::string(back_cwd), "/private/tmp");
+    EXPECT_EQ(std::string(back_cwd), expected_tmp);
     // Restore original directory
     std::vector<std::string> restore = {"cd", start_dir};
     execute_command(restore);
