@@ -1,4 +1,4 @@
-# unix-cpp-shell
+# unix-shell
 
 ![shell demo](./docs/shell-demo.svg)
 
@@ -27,8 +27,8 @@ Supports command execution, I/O redirection (`>`, `>>`, `<`), pipelines (`|`), b
 
 ```bash
 # Clone repository
-git clone https://github.com/matteo-psnt/unix-cpp-shell.git
-cd unix-cpp-shell
+git clone https://github.com/matteo-psnt/unix-shell.git
+cd unix-shell
 
 # Install dependencies via vcpkg (readline, ncurses)
 ./vcpkg/bootstrap-vcpkg.sh

@@ -1,5 +1,5 @@
 #!/bin/zsh
-# Run all CTest-based unit tests for the unix-cpp-shell project
+# Run all CTest-based unit tests for the unix-shell project
 
 # Ensure we are in the project root (the directory containing this script)
 cd "$(dirname "$0")" || exit 1
