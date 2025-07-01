@@ -99,6 +99,12 @@ TEST(TokenizeInputTest, SingleAndDoubleQuotedAndUnquotedSegments) {
     // Mixed single and double quotes
     EXPECT_EQ(tokenize_input("echo 'foo'\"bar\""), (V{"echo", "foobar"}));
     EXPECT_EQ(tokenize_input("echo \"foo\"'bar'"), (V{"echo", "foobar"}));
+    // Mixed single and double quotes with multiple segments
+    EXPECT_EQ(tokenize_input("echo 'foo'\"bar\"'baz'"), (V{"echo", "foobarbaz"}));
+    // Double-quoted containing single quotes
+    EXPECT_EQ(tokenize_input("echo \"She said 'Hello'\""), (V{"echo", "She said 'Hello'"}));
+    // Single-quoted with escaped single quote
+    EXPECT_EQ(tokenize_input("echo 'It\\'s fine'"), (V{"echo", "It's fine"}));
     // Double-quoted with single quote inside
     EXPECT_EQ(tokenize_input("echo \"foo'bar'\""), (V{"echo", "foo'bar'"}));
     // Single-quoted with double quote inside

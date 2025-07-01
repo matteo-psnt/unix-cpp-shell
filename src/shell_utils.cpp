@@ -18,66 +18,78 @@ std::string trim_whitespace(const std::string& str) {
 
 std::vector<std::string> tokenize_input(const std::string& input) {
     std::vector<std::string> tokens;
-    size_t i = 0;
-    while (i < input.size()) {
-        // Skip whitespace between tokens
-        while (i < input.size() && std::isspace(input[i]))
-            ++i;
-        if (i >= input.size()) break;
+    std::string token;
 
-        std::string token;
-        while (i < input.size() && !std::isspace(input[i])) {
-            if (input[i] == '\'') {
-                // Start of single-quoted segment
-                size_t end = input.find('\'', i + 1);
-                if (end == std::string::npos) {
-                    token += input.substr(i + 1);
-                    i = input.size();
-                    break;
-                } else {
-                    token += input.substr(i + 1, end - i - 1);
-                    i = end + 1;
-                }
-            } else if (input[i] == '"') {
-                // Start of double-quoted segment
-                ++i; // skip opening quote
-                while (i < input.size()) {
-                    if (input[i] == '\\' && i + 1 < input.size()) {
-                        char next = input[i + 1];
-                        if (next == '\\' || next == '"' || next == '$' || next == '\n') {
-                            token += next;
-                            i += 2;
-                        } else {
-                            token += '\\';
-                            ++i;
+    enum class State { Normal, Single, Double } state = State::Normal;
+    for (size_t i = 0; i < input.size(); ++i) {
+        char c = input[i];
+
+        switch (state) {
+            case State::Normal:
+                if (std::isspace(static_cast<unsigned char>(c))) {
+                    if (!token.empty()) {
+                        if (token[0] == '$' && token.size() > 1) {
+                            const char* val = std::getenv(token.c_str() + 1);
+                            token = val ? val : "";
                         }
-                    } else if (input[i] == '"') {
-                        ++i;
-                        break;
-                    } else {
-                        token += input[i];
-                        ++i;
+                        tokens.push_back(token);
+                        token.clear();
                     }
+                } else if (c == '\'') {
+                    state = State::Single;
+                } else if (c == '"') {
+                    state = State::Double;
+                } else if (c == '\\' && i + 1 < input.size()) {
+                    token += input[i + 1];
+                    ++i;
+                } else {
+                    token += c;
                 }
-            } else if (input[i] == '\\' && i + 1 < input.size()) {
-                // Unquoted backslash escapes next character
-                token += input[i + 1];
-                i += 2;
-            } else {
-                // Unquoted segment
-                token += input[i];
-                ++i;
-            }
-        }
-        if (!token.empty()) {
-            // Environment variable expansion: $VAR
-            if (token[0] == '$' && token.size() > 1) {
-                const char* val = std::getenv(token.c_str() + 1);
-                token = val ? val : "";
-            }
-            tokens.push_back(token);
+                break;
+
+            case State::Single:
+                if (c == '\\' && i + 1 < input.size() && input[i + 1] == '\'') {
+                    token += '\'';
+                    ++i;
+                } else if (c == '\'') {
+                    state = State::Normal;
+                } else {
+                    token += c;
+                }
+                break;
+
+            case State::Double:
+                if (c == '\\' && i + 1 < input.size()) {
+                    char next = input[i + 1];
+                    if (next == '\\' || next == '"' || next == '$') {
+                        token += next;
+                        ++i;
+                    } else if (next == 'n') {
+                        token += '\n';
+                        ++i;
+                    } else if (next == '\n') {
+                        token += '\n';
+                        ++i;
+                    } else {
+                        token += '\\';
+                    }
+                } else if (c == '"') {
+                    state = State::Normal;
+                } else {
+                    token += c;
+                }
+                break;
         }
     }
+
+    if (!token.empty()) {
+        if (token[0] == '$' && token.size() > 1) {
+            const char* val = std::getenv(token.c_str() + 1);
+            token = val ? val : "";
+        }
+        tokens.push_back(token);
+    }
+
     return tokens;
 }
 
