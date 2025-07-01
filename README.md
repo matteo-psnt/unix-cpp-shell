@@ -13,7 +13,7 @@ Supports command execution, I/O redirection (`>`, `>>`, `<`), pipelines (`|`), b
 * Pipelining with `|`
 * Quoting and escaping support
 * Auto-completion
-* Unit tests with GoogleTest
+* GoogleTest unit suite + Tcl/Expect end-to-end tests  
 
 ## Getting Started
 
@@ -21,6 +21,14 @@ Supports command execution, I/O redirection (`>`, `>>`, `<`), pipelines (`|`), b
 
 * CMake 3.15 or higher
 * C++23-compatible compiler
+* **Expect** (for integration tests)  
+  - **macOS**: pre-installed  
+  - **Ubuntu/Debian**:  
+    ```bash
+    sudo add-apt-repository universe   # first time only
+    sudo apt-get update
+    sudo apt-get install expect
+    ```
 
 ### Build and Test
 
@@ -29,13 +37,9 @@ Supports command execution, I/O redirection (`>`, `>>`, `<`), pipelines (`|`), b
 git clone https://github.com/matteo-psnt/unix-shell.git
 cd unix-shell
 
-# Pull in vcpkg
+# Bootstrap and install vcpkg deps
 git clone https://github.com/microsoft/vcpkg.git vcpkg
-
-# Make scripts executable
-chmod +x ./vcpkg/bootstrap-vcpkg.sh run_tests.sh run_shell.sh
-
-# Bootstrap vcpkg and install dependencies
+chmod +x vcpkg/bootstrap-vcpkg.sh run_tests.sh run_shell.sh
 ./vcpkg/bootstrap-vcpkg.sh
 ./vcpkg/vcpkg install
 
@@ -53,7 +57,7 @@ chmod +x ./vcpkg/bootstrap-vcpkg.sh run_tests.sh run_shell.sh
 
 ```plain
 src/                 - Shell source code
-tests/               - GoogleTest unit tests
+tests/               - GoogleTest unit tests and End-to-End integration tests
 run_tests.sh         - Build & run all tests
 run_shell.sh         - Build & start the shell interactively
 CMakeLists.txt       - Build configuration

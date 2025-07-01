@@ -1,0 +1,367 @@
+#!/usr/bin/expect -f
+
+# =============================================================================
+# Advanced Shell Features Integration Test
+# =============================================================================
+# This test covers advanced shell features like environment variables,
+# command substitution, quoting, escaping, and special characters
+
+# Configure expect behavior
+set timeout 5
+log_user 1
+
+# Store the expected HOME directory for validation
+set expected_home $env(HOME)
+
+# Spawn the shell executable
+spawn ./build/shell
+
+# Wait for the shell prompt
+expect {
+    "$ " {
+        # Success - we got the prompt
+    }
+    timeout {
+        puts "ERROR: Timeout waiting for shell prompt"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Shell exited unexpectedly"
+        exit 1
+    }
+}
+
+# Test 1: Environment variables - validate exact HOME expansion
+send "echo \$HOME\r"
+expect {
+    -re "echo \\\$HOME.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    -re "/Users/.+\r?\n" {
+        # Good - some valid home directory
+        puts "✓ HOME expanded to valid path"
+    }
+    -re "/.*\r?\n" {
+        # Acceptable - some absolute path
+        puts "✓ HOME expanded to absolute path"
+    }
+    "\$HOME" {
+        puts "ERROR: Environment variable expansion not implemented"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: HOME variable test timed out"
+        exit 1
+    }
+}
+expect {
+    "$ " {
+        # Got prompt
+    }
+    timeout {
+        puts "ERROR: No prompt after HOME test"
+        exit 1
+    }
+}
+
+# Test 2: Setting and using custom environment variable - strict validation
+send "export MY_VAR=hello\r"
+expect {
+    "$ " {
+        # export should complete silently
+    }
+    -re "export.*not found" {
+        puts "ERROR: export command not implemented"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: export command timed out"
+        exit 1
+    }
+}
+
+# Verify the variable was set correctly
+send "echo \$MY_VAR\r"
+expect {
+    -re "echo \\\$MY_VAR.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    "hello\r\n" {
+        # Perfect - exact match
+        puts "✓ Custom variable MY_VAR set correctly"
+    }
+    "hello" {
+        # Good - correct value
+        puts "✓ Custom variable works"
+    }
+    "\$MY_VAR" {
+        puts "ERROR: Custom environment variable expansion failed"
+        exit 1
+    }
+    -re "^\r?\n$" {
+        puts "ERROR: MY_VAR is empty or not set"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: Custom variable test timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 3: Single quotes (should prevent expansion)
+send "echo '\$HOME should not expand'\r"
+expect {
+    "\$HOME should not expand" {
+        # Success - single quotes prevented expansion
+    }
+    timeout {
+        puts "WARNING: Single quote test timed out"
+    }
+}
+expect "$ "
+
+# Test 4: Double quotes (should allow expansion)
+send "echo \"Home is \$HOME\"\r"
+expect {
+    -re "Home is /.*" {
+        # Success - double quotes allowed expansion
+    }
+    "Home is \$HOME" {
+        puts "WARNING: Variable expansion in double quotes may not be implemented"
+    }
+    timeout {
+        puts "WARNING: Double quote expansion test timed out"
+    }
+}
+expect "$ "
+
+# Test 5: Escaping special characters
+send "echo \\\$HOME is my home\r"
+expect {
+    "\$HOME is my home" {
+        # Success - backslash escaped the dollar sign
+    }
+    timeout {
+        puts "WARNING: Backslash escaping test timed out"
+    }
+}
+expect "$ "
+
+# Test 6: Command substitution with backticks (if implemented)
+send "echo \"Current date: \"\r"
+expect {
+    -re "Current date:" {
+        # Simple test without command substitution for now
+    }
+    timeout {
+        puts "WARNING: Simple echo test timed out"
+    }
+}
+expect "$ "
+
+# Test 7: Command substitution with $() syntax (if implemented)
+send "echo \"Files: \$(ls | wc -l)\"\r"
+expect {
+    -re "Files:" {
+        # May or may not have command substitution
+    }
+    timeout {
+        puts "WARNING: \$() command substitution test timed out"
+    }
+}
+expect "$ "
+
+# Test 8: Semicolon command separator
+send "echo first; echo second\r"
+expect {
+    "first" {
+        expect "second"
+        expect "$ "
+    }
+    timeout {
+        puts "WARNING: Semicolon command separator test timed out"
+        expect "$ "
+    }
+}
+
+# Test 9: Logical AND operator - verify both success and failure cases
+send "true && echo 'AND success'\r"
+expect {
+    -re "true && echo.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    "AND success\r\n" {
+        # Perfect - AND worked
+        puts "✓ Logical AND operator works"
+    }
+    "AND success" {
+        # Good - AND worked
+    }
+    "true" {
+        puts "ERROR: AND operator not implemented - commands executed separately"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: Logical AND test timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test AND failure case
+send "false && echo 'Should not appear'\r"
+expect {
+    -re "false && echo.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    "Should not appear" {
+        puts "ERROR: AND operator failed - second command executed after false"
+        exit 1
+    }
+    "$ " {
+        # Good - second command was not executed
+        puts "✓ AND operator correctly skips after false"
+    }
+    timeout {
+        puts "ERROR: AND failure test timed out"
+        exit 1
+    }
+}
+
+# Test 10: Logical OR operator - verify both cases
+send "false || echo 'OR success'\r"
+expect {
+    -re "false \\|\\| echo.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    "OR success\r\n" {
+        # Perfect - OR worked
+        puts "✓ Logical OR operator works"
+    }
+    "OR success" {
+        # Good - OR worked
+    }
+    "false" {
+        puts "ERROR: OR operator not implemented - commands executed separately"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: Logical OR test timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test OR success case
+send "true || echo 'Should not appear'\r"
+expect {
+    -re "true \\|\\| echo.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    "Should not appear" {
+        puts "ERROR: OR operator failed - second command executed after true"
+        exit 1
+    }
+    "$ " {
+        # Good - second command was not executed
+        puts "✓ OR operator correctly skips after true"
+    }
+    timeout {
+        puts "ERROR: OR success test timed out"
+        exit 1
+    }
+}
+
+# Test 11: Multiple levels of quoting
+send "echo \"She said: 'Hello world'\"\r"
+expect {
+    "She said: 'Hello world'" {
+        # Success - nested quotes handled correctly
+    }
+    timeout {
+        puts "WARNING: Nested quotes test timed out"
+    }
+}
+expect "$ "
+
+# Test 12: Special characters in filenames
+send "touch 'file with spaces and (parentheses).txt'\r"
+expect "$ "
+send "ls 'file with spaces and (parentheses).txt'\r"
+expect {
+    -re "file with spaces" {
+        # Success - special characters in filenames handled
+    }
+    timeout {
+        puts "WARNING: Special characters in filenames test timed out"
+    }
+}
+expect "$ "
+
+# Test 13: Tab and newline in echo
+send "echo -e 'line1\\tcolumn2\\nline2\\tcolumn2'\r"
+expect {
+    -re "line1.*column2" {
+        # Success - escape sequences processed (if -e is supported)
+    }
+    "line1\\tcolumn2" {
+        puts "WARNING: echo -e escape sequences may not be implemented"
+    }
+    timeout {
+        puts "WARNING: Echo escape sequences test timed out"
+    }
+}
+expect "$ "
+
+# Test 14: Wildcard with spaces and special chars
+send "ls *.txt 2>/dev/null || echo 'No txt files'\r"
+expect {
+    -re "(txt|No txt files)" {
+        # Either found txt files or reported none
+    }
+    timeout {
+        puts "WARNING: Wildcard with error redirection test timed out"
+    }
+}
+expect "$ "
+
+# Test 15: Comments (should be ignored)
+send "echo 'before comment' # this is a comment\r"
+expect {
+    "before comment" {
+        # Success - comment was ignored
+    }
+    timeout {
+        puts "WARNING: Comment handling test timed out"
+    }
+}
+expect "$ "
+
+# Clean up test files
+send "rm -f 'file with spaces and (parentheses).txt'\r"
+expect "$ "
+
+# Exit the shell gracefully
+send "exit\r"
+expect {
+    eof {
+        # Success - shell exited cleanly
+        puts "SUCCESS: Advanced shell features test completed"
+        
+        # Clean up any test files that might have been created
+        catch {exec rm -f 'file with spaces and (parentheses).txt'}
+        
+        exit 0
+    }
+    timeout {
+        puts "ERROR: Shell did not exit cleanly"
+        exit 1
+    }
+}

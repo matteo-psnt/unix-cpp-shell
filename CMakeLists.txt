@@ -1,4 +1,4 @@
- # Enable vcpkg toolchain
+# Enable vcpkg toolchain
  if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
        CACHE STRING "Vcpkg toolchain file")
@@ -48,4 +48,7 @@ target_link_libraries(shell_tests PRIVATE gtest_main PkgConfig::readline)
 
 include(GoogleTest)
 gtest_discover_tests(shell_tests)
+
+# Add integration tests subdirectory
+add_subdirectory(tests/integration)
 

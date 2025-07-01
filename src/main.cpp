@@ -47,27 +47,9 @@ int main() {
 
         add_history(trimmed_input.c_str());
 
-        std::vector<std::string> tokens = tokenize_input(trimmed_input);
-        if (tokens.empty()) {
-            continue;
-        }
-
-        ParsedCommand cmd = parse_redirection(std::move(tokens));
-
-        if (cmd.pipeline.size() > 1) {
-            run_pipeline(cmd);
-            continue;
-        }
-
-        bool should_exit = false;
-        const auto& command = cmd.pipeline.empty() ? std::vector<std::string>{} : cmd.pipeline[0];
-
-        if (cmd.redirect_type != RedirectType::None) {
-            RedirectGuard guard(cmd.redirect_file, cmd.redirect_type);
-            should_exit = execute_command(command);
-        } else {
-            should_exit = execute_command(command);
-        }
+        // Parse and execute command sequence (handles ;, &&, ||)
+        std::vector<CommandSequence> sequences = parse_command_sequence(trimmed_input);
+        bool should_exit = execute_command_sequence(sequences);
 
         if (should_exit) {
             break;

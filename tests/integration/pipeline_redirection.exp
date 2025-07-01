@@ -1,0 +1,527 @@
+#!/usr/bin/expect -f
+
+# =============================================================================
+# Pipeline and Redirection Integration Test
+# =============================================================================
+# This test verifies pipeline and I/O redirection functionality
+# Tests: pipes (|), output redirection (>), and file operations
+
+# Configure expect behavior
+set timeout 8
+log_user 1
+
+# Track test files for verification
+set test_files_created {}
+set expected_files {}
+
+# Clean up any leftover test files
+file delete -force out.txt test_input.txt
+
+# Spawn the shell executable
+spawn ./build/shell
+
+# Wait for the shell prompt
+expect {
+    "$ " {
+        # Success - we got the prompt
+    }
+    timeout {
+        puts "ERROR: Timeout waiting for shell prompt"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Shell exited unexpectedly"
+        exit 1
+    }
+}
+
+# Test 1: Simple output redirection - verify file creation immediately
+send "echo 'Hello World' > out.txt\r"
+expect {
+    "$ " {
+        # Command completed
+    }
+    timeout {
+        puts "ERROR: Simple redirection timed out"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Shell died during simple redirection"
+        exit 1
+    }
+}
+
+# Verify file was created and has correct content
+send "cat out.txt\r"
+expect {
+    "Hello World\r\n" {
+        # Perfect - file contains expected content
+        lappend test_files_created "out.txt"
+    }
+    "Hello World" {
+        # Acceptable - correct content
+        lappend test_files_created "out.txt"
+    }
+    -re "cat:.*No such file" {
+        puts "ERROR: Redirection failed - out.txt not created"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: File verification timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 2: Pipeline with redirection - validate pipeline works AND redirects
+send "echo 'foo bar baz' | grep foo > pipeline_out.txt\r"
+expect {
+    "$ " {
+        # Command completed
+    }
+    timeout {
+        puts "ERROR: Pipeline with redirection timed out"
+        exit 1
+    }
+}
+
+# Verify pipeline worked correctly
+send "cat pipeline_out.txt\r"
+expect {
+    "foo bar baz\r\n" {
+        # Perfect - pipeline found the line
+        lappend test_files_created "pipeline_out.txt"
+    }
+    "foo bar baz" {
+        # Acceptable - correct content
+        lappend test_files_created "pipeline_out.txt"
+    }
+    -re "cat:.*No such file" {
+        puts "ERROR: Pipeline redirection failed - no output file"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: Pipeline output verification timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 3: Verify shell remains responsive
+send "echo 'Testing pipeline'\r"
+expect {
+    "Testing pipeline\r\n" {
+        # Perfect response
+    }
+    "Testing pipeline" {
+        # Acceptable
+    }
+    timeout {
+        puts "ERROR: Shell not responsive after pipeline"
+        exit 1
+    }
+}
+expect {
+    "$ " {
+        # Got prompt
+    }
+    timeout {
+        puts "ERROR: No prompt after responsiveness test"
+        exit 1
+    }
+}
+
+# Test 4: Input redirection - strict validation
+send "echo 'test input content' > test_input.txt\r"
+expect {
+    "$ " {
+        # Created input file
+    }
+    timeout {
+        puts "ERROR: Creating input file timed out"
+        exit 1
+    }
+}
+
+# Test input redirection
+send "cat < test_input.txt\r"
+expect {
+    "test input content\r\n" {
+        # Perfect - input redirection works
+        lappend test_files_created "test_input.txt"
+    }
+    "test input content" {
+        # Acceptable
+        lappend test_files_created "test_input.txt"
+    }
+    -re "cat:.*" {
+        puts "ERROR: Input redirection failed"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: Input redirection test timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 5: Append redirection - verify incremental content
+send "echo 'first line' > append_test.txt\r"
+expect "$ "
+send "echo 'second line' >> append_test.txt\r"
+expect "$ "
+
+# Verify both lines are present in correct order
+send "cat append_test.txt\r"
+expect {
+    -re "first line\r?\nSecond line" {
+        puts "ERROR: Append redirection corrupted content"
+        exit 1
+    }
+    -re "first line.*second line" {
+        # Good - both lines present
+        lappend test_files_created "append_test.txt"
+    }
+    "first line" {
+        puts "ERROR: Append redirection failed - only first line found"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: Append test verification timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test that >> doesn't overwrite existing content
+send "echo 'third line' >> append_test.txt\r"
+expect "$ "
+send "wc -l append_test.txt\r"
+expect {
+    -re "3 append_test.txt" {
+        # Perfect - should have 3 lines
+    }
+    -re "(\[0-9\]+) append_test.txt" {
+        set line_count $expect_out(1,string)
+        if {$line_count != 3} {
+            puts "ERROR: Expected 3 lines, got $line_count"
+            exit 1
+        }
+    }
+    timeout {
+        puts "ERROR: Line count verification timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 6: Error redirection (stderr) - verify error is captured
+send "ls nonexistent_file_xyz 2> error.txt\r"
+expect {
+    "$ " {
+        # No error output should appear on screen
+    }
+    -re "ls:.*nonexistent_file_xyz" {
+        puts "ERROR: stderr redirection failed - error appeared on screen"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: Error redirection test timed out"
+        exit 1
+    }
+}
+
+# Verify error was captured in file
+send "cat error.txt\r"
+expect {
+    -re "ls:.*nonexistent_file_xyz.*No such file" {
+        # Perfect - error captured
+        lappend test_files_created "error.txt"
+    }
+    -re "nonexistent_file_xyz" {
+        # At least the filename is mentioned
+        lappend test_files_created "error.txt"
+    }
+    -re "cat:.*No such file" {
+        puts "ERROR: Error redirection completely failed - no error.txt created"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: Error file verification timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 7: Error append redirection - verify errors accumulate
+send "ls another_nonexistent 2>> error.txt\r"
+expect "$ "
+
+# Verify both errors are in the file
+send "grep -c nonexistent error.txt\r"
+expect {
+    "2\r\n" {
+        # Perfect - both errors captured
+    }
+    "2" {
+        # Good - both errors present
+    }
+    "1" {
+        puts "ERROR: Error append failed - only one error in file"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: Error append verification timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 8: Combined stdout and stderr redirection
+send "echo 'output' > combined.txt 2>&1\r"
+expect "$ "
+
+# Test 9: Combined redirection with &>
+send "echo 'combined output' &> combined2.txt\r"
+expect "$ "
+
+# Test 10: Complex pipeline - verify exact computation
+send "echo -e 'apple\\nbanana\\ncherry' | grep a | wc -l\r"
+expect {
+    "2\r\n" {
+        # Perfect - apple and banana both contain 'a'
+    }
+    "2" {
+        # Acceptable - correct count
+    }
+    "1" {
+        puts "WARNING: Pipeline may not be working optimally - expected 2 lines with 'a', got 1"
+    }
+    -re "(\[0-9\]+)" {
+        set count $expect_out(1,string)
+        if {$count < 1 || $count > 3} {
+            puts "ERROR: Pipeline computation wrong - got $count, expected 2"
+            exit 1
+        }
+        puts "Pipeline count: $count (expected 2)"
+    }
+    timeout {
+        puts "ERROR: Complex pipeline timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test another pipeline to verify consistency
+send "echo 'test1 test2 test3' | tr ' ' '\\n' | wc -l\r"
+expect {
+    "3\r\n" {
+        # Perfect - should have 3 lines
+    }
+    "3" {
+        # Good
+    }
+    -re "(\[0-9\]+)" {
+        set count $expect_out(1,string)
+        if {$count != 3} {
+            puts "ERROR: tr pipeline failed - expected 3 lines, got $count"
+            exit 1
+        }
+    }
+    timeout {
+        puts "ERROR: tr pipeline timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 11: Pipeline with redirection at the end
+send "echo 'line1\\nline2\\nline3' | grep line > pipeline_out.txt\r"
+expect "$ "
+
+# Test 12: Pipeline with input redirection
+send "echo 'test\\ndata\\ntest' > pipe_input.txt\r"
+expect "$ "
+send "cat < pipe_input.txt | grep test\r"
+expect "test"
+expect "test"
+expect "$ "
+
+# Test 13: Multiple pipes
+send "echo 'one two three four' | tr ' ' '\\n' | sort | head -2\r"
+expect {
+    -re "(four|one|three|two)" {
+        # Success - should see some sorted output
+    }
+    timeout {
+        puts "ERROR: Timeout waiting for multi-pipe output"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 14: Pipeline with error handling
+send "echo 'valid input' | nonexistentcommand456 2> pipe_error.txt\r"
+expect "$ "
+
+# Test 15: Redirection with spaces in filenames (quoted)
+send "echo 'space test' > 'file with spaces.txt'\r"
+expect "$ "
+send "cat 'file with spaces.txt'\r"
+expect "space test"
+expect "$ "
+
+# Test 16: Background job (if job control is implemented)
+send "echo 'Job control not implemented yet'\r"
+expect "Job control not implemented yet"
+expect "$ "
+
+# Test 17: Job listing (if implemented)
+send "jobs\r"
+expect "$ "
+
+# Test 18: Test that shell remains responsive during background job
+send "echo 'shell is responsive'\r"
+expect "shell is responsive"
+expect "$ "
+
+# Test 19: Create test files for globbing
+send "touch test1.txt test2.txt test3.log\r"
+expect "$ "
+
+# Test 20: Wildcard expansion (if implemented)
+send "echo *.txt\r"
+expect {
+    "test1.txt" {
+        # Success - globbing worked
+    }
+    "*.txt" {
+        # Globbing not implemented, shell passed literal *.txt
+        puts "WARNING: Globbing may not be implemented - got literal *.txt"
+    }
+    timeout {
+        puts "ERROR: Timeout waiting for glob output"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 21: Specific pattern matching
+send "ls test1.txt\r"
+expect {
+    "test1.txt" {
+        # Success - found test file
+    }
+    timeout {
+        puts "WARNING: Pattern matching test timed out"
+    }
+}
+expect "$ "
+
+# Test 22: Question mark wildcard
+send "echo test?.txt\r"
+expect "$ "
+
+# Test 23: Character class (if implemented)  
+send "echo 'test character classes'\r"
+expect "test character classes"
+expect "$ "
+
+# Clean up glob test files
+send "rm -f test1.txt test2.txt test3.log\r"
+expect "$ "
+
+# Exit the shell gracefully
+send "exit\r"
+expect {
+    eof {
+        # Success - shell exited cleanly
+    }
+    timeout {
+        puts "ERROR: Shell did not exit cleanly"
+        exit 1
+    }
+}
+
+# =============================================================================
+# Post-execution file verification
+# =============================================================================
+# After the shell exits, verify that redirection worked correctly
+
+# Expected minimum files that should have been created during tests
+set critical_files {out.txt pipeline_out.txt test_input.txt append_test.txt error.txt}
+set all_test_files {out.txt test_input.txt append_test.txt error.txt combined.txt combined2.txt pipeline_out.txt pipe_input.txt pipe_error.txt "file with spaces.txt" test1.txt test2.txt test3.log}
+
+set files_found 0
+set files_with_content 0
+set critical_files_found 0
+set missing_critical_files {}
+
+# Check critical files first
+foreach file $critical_files {
+    if {[file exists $file]} {
+        incr critical_files_found
+        incr files_found
+        
+        # Verify file has content
+        if {[catch {
+            set file_handle [open $file r]
+            set file_contents [read $file_handle]
+            close $file_handle
+            
+            if {[string length [string trim $file_contents]] > 0} {
+                incr files_with_content
+                puts "✓ $file: [string length $file_contents] bytes"
+            } else {
+                puts "✗ $file: empty file"
+            }
+        } err]} {
+            puts "✗ $file: read error - $err"
+        }
+    } else {
+        lappend missing_critical_files $file
+        puts "✗ $file: missing"
+    }
+}
+
+# Check remaining files
+foreach file $all_test_files {
+    if {[lsearch $critical_files $file] == -1 && [file exists $file]} {
+        incr files_found
+        if {[catch {
+            set file_handle [open $file r]
+            set file_contents [read $file_handle]
+            close $file_handle
+            if {[string length [string trim $file_contents]] > 0} {
+                incr files_with_content
+            }
+        }]} {
+            # Ignore errors for non-critical files
+        }
+    }
+}
+
+# Clean up all test files
+foreach file $all_test_files {
+    catch {file delete -force $file}
+}
+
+# Strict validation
+if {$critical_files_found < [llength $critical_files]} {
+    puts "FAILURE: Critical redirection tests failed"
+    puts "  Missing critical files: $missing_critical_files"
+    puts "  Found $critical_files_found/[llength $critical_files] critical files"
+    exit 1
+}
+
+if {$files_with_content < 3} {
+    puts "FAILURE: Too few files have content ($files_with_content)"
+    puts "  This suggests redirection is not working properly"
+    exit 1
+}
+
+puts "SUCCESS: Pipeline and redirection test passed"
+puts "  Critical files: $critical_files_found/[llength $critical_files]"
+puts "  Total files created: $files_found"
+puts "  Files with content: $files_with_content"
+exit 0

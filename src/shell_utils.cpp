@@ -6,6 +6,9 @@
 #include <sys/wait.h>
 #include <vector>
 #include "command_table.h"
+#include "command_parser.h"
+#include "redirect_guard.h"
+#include "pipe_utils.h"
 
 std::string trim_whitespace(const std::string& str) {
     const std::string whitespace = " \t\n\r\f\v";
@@ -75,6 +78,22 @@ std::vector<std::string> tokenize_input(const std::string& input) {
                     }
                 } else if (c == '"') {
                     state = State::Normal;
+                } else if (c == '$' && i + 1 < input.size()) {
+                    // Handle variable expansion in double quotes
+                    ++i;
+                    std::string var_name;
+                    while (i < input.size() && (std::isalnum(static_cast<unsigned char>(input[i])) || input[i] == '_')) {
+                        var_name += input[i];
+                        ++i;
+                    }
+                    --i; // Back up one since the loop will increment
+                    
+                    if (!var_name.empty()) {
+                        const char* val = std::getenv(var_name.c_str());
+                        token += val ? val : "";
+                    } else {
+                        token += '$';
+                    }
                 } else {
                     token += c;
                 }
@@ -159,6 +178,7 @@ void run_external_command(const std::vector<std::string>& tokens) {
         if (waitpid(pid, &status, 0) == -1) {
             perror("waitpid failed");
         }
+        // Store exit status for logical operations (could be enhanced later)
     }
 }
 
@@ -172,4 +192,113 @@ bool execute_command(const std::vector<std::string>& tokens) {
         run_external_command(tokens);
         return false;
     }
+}
+
+std::vector<CommandSequence> parse_command_sequence(const std::string& input) {
+    std::vector<CommandSequence> sequences;
+    std::string current_command;
+    std::string current_operator = "";
+    
+    for (size_t i = 0; i < input.size(); ++i) {
+        char c = input[i];
+        
+        if (c == ';') {
+            if (!current_command.empty()) {
+                CommandSequence seq;
+                seq.tokens = tokenize_input(current_command);
+                seq.operator_type = current_operator;
+                sequences.push_back(seq);
+                current_command.clear();
+                current_operator = ";";
+            }
+        } else if (c == '&' && i + 1 < input.size() && input[i + 1] == '&') {
+            if (!current_command.empty()) {
+                CommandSequence seq;
+                seq.tokens = tokenize_input(current_command);
+                seq.operator_type = current_operator;
+                sequences.push_back(seq);
+                current_command.clear();
+                current_operator = "&&";
+            }
+            ++i; // Skip the second &
+        } else if (c == '|' && i + 1 < input.size() && input[i + 1] == '|') {
+            if (!current_command.empty()) {
+                CommandSequence seq;
+                seq.tokens = tokenize_input(current_command);
+                seq.operator_type = current_operator;
+                sequences.push_back(seq);
+                current_command.clear();
+                current_operator = "||";
+            }
+            ++i; // Skip the second |
+        } else {
+            current_command += c;
+        }
+    }
+    
+    // Add the last command
+    if (!current_command.empty()) {
+        CommandSequence seq;
+        seq.tokens = tokenize_input(current_command);
+        seq.operator_type = current_operator;
+        sequences.push_back(seq);
+    }
+    
+    return sequences;
+}
+
+bool execute_command_sequence(const std::vector<CommandSequence>& sequences) {
+    bool last_command_success = true;
+    bool should_exit = false;
+    
+    for (const auto& seq : sequences) {
+        bool should_execute = true;
+        
+        if (seq.operator_type == "&&" && !last_command_success) {
+            should_execute = false;
+        } else if (seq.operator_type == "||" && last_command_success) {
+            should_execute = false;
+        }
+        
+        if (should_execute && !seq.tokens.empty()) {
+            ParsedCommand cmd = parse_redirection(seq.tokens);
+            
+            if (cmd.pipeline.size() > 1) {
+                run_pipeline(cmd);
+                last_command_success = true; // Assume success for now
+            } else {
+                const auto& command = cmd.pipeline.empty() ? std::vector<std::string>{} : cmd.pipeline[0];
+                
+                if (cmd.redirect_type != RedirectType::None) {
+                    RedirectGuard guard(cmd.redirect_file, cmd.redirect_type);
+                    should_exit = execute_command(command);
+                } else {
+                    should_exit = execute_command(command);
+                }
+                
+                // Determine command success based on command type
+                if (!command.empty()) {
+                    if (command[0] == "false") {
+                        last_command_success = false;
+                    } else if (command[0] == "true") {
+                        last_command_success = true;
+                    } else if (command[0] == "exit") {
+                        last_command_success = true; // exit is considered successful
+                    } else {
+                        // For other built-ins and external commands, success is the default
+                        // unless they explicitly fail
+                        last_command_success = true;
+                    }
+                } else {
+                    last_command_success = true;
+                }
+                
+                if (should_exit) {
+                    break;
+                }
+            }
+        }
+    }
+    
+    return should_exit;
 }

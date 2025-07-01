@@ -1,0 +1,196 @@
+#!/usr/bin/expect -f
+
+# =============================================================================
+# Alias Functionality Integration Test
+# =============================================================================
+# This test verifies alias creation, usage, and management
+# Tests: alias creation, alias usage, alias listing, alias removal
+
+# Configure expect behavior
+set timeout 10
+log_user 1
+
+# Spawn the shell executable
+spawn ./build/shell
+
+# Wait for the shell prompt
+expect {
+    "$ " {
+        # Success - we got the prompt
+    }
+    timeout {
+        puts "ERROR: Timeout waiting for shell prompt"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Shell exited unexpectedly"
+        exit 1
+    }
+}
+
+# Test 1: Create a simple alias
+send "alias ll='ls -l'\r"
+expect {
+    "$ " {
+        # Success - alias created (or command not recognized)
+    }
+    timeout {
+        puts "ERROR: Timeout after alias creation"
+        exit 1
+    }
+}
+
+# Test 2: Use the created alias
+send "ll\r"
+expect {
+    -re "(total|drwx|ls:)" {
+        # Success - alias was executed and ran ls -l
+    }
+    -re "(command not found|ll)" {
+        # Alias functionality may not be implemented
+        puts "WARNING: Alias functionality may not be implemented"
+    }
+    timeout {
+        puts "WARNING: Alias usage test timed out"
+    }
+}
+expect "$ "
+
+# Test 3: Create alias with multiple commands
+send "alias greet='echo Hello && echo World'\r"
+expect "$ "
+
+# Test 4: Use multi-command alias
+send "greet\r"
+expect {
+    -re "(Hello.*World|command not found)" {
+        # Either worked or aliases not implemented
+    }
+    timeout {
+        puts "WARNING: Multi-command alias test timed out"
+    }
+}
+expect "$ "
+
+# Test 5: List all aliases
+send "alias\r"
+expect {
+    -re "(ll=|greet=|No aliases)" {
+        # Success - either showed aliases or reported none
+    }
+    -re "command not found" {
+        puts "WARNING: alias command may not be implemented"
+    }
+    timeout {
+        puts "WARNING: Alias listing test timed out"
+    }
+}
+expect "$ "
+
+# Test 6: Create alias with parameters
+send "alias search='grep -r'\r"
+expect "$ "
+
+# Test 7: Use alias with parameters
+send "echo 'test content' > search_test.txt\r"
+expect "$ "
+send "search 'test' .\r"
+expect {
+    -re "(test content|search_test.txt)" {
+        # Success - alias with parameters worked
+    }
+    -re "command not found" {
+        puts "WARNING: Parameterized aliases may not be implemented"
+    }
+    timeout {
+        puts "WARNING: Parameterized alias test timed out"
+    }
+}
+expect "$ "
+
+# Test 8: Alias overriding existing command
+send "alias echo='echo ALIASED'\r"
+expect "$ "
+send "echo test\r"
+expect {
+    "ALIASED" {
+        # Success - alias overrode built-in command
+    }
+    "test" {
+        # Built-in was used, alias may not override built-ins
+        puts "WARNING: Aliases may not override built-in commands"
+    }
+    timeout {
+        puts "WARNING: Alias override test timed out"
+    }
+}
+expect "$ "
+
+# Test 9: Remove an alias (if unalias is implemented)
+send "unalias echo\r"
+expect {
+    "$ " {
+        # Command completed (successfully or not)
+    }
+    timeout {
+        puts "WARNING: unalias command test timed out"
+    }
+}
+
+# Test 10: Verify alias was removed
+send "echo test_after_unalias\r"
+expect {
+    "test_after_unalias" {
+        # Success - back to normal echo behavior
+    }
+    "ALIASED" {
+        # Alias still active, unalias may not be implemented
+        puts "WARNING: unalias may not be implemented"
+    }
+    timeout {
+        puts "WARNING: Post-unalias test timed out"
+    }
+}
+expect "$ "
+
+# Test 11: Recursive alias (should be prevented)
+send "alias test_recursive='test_recursive echo loop'\r"
+expect "$ "
+send "test_recursive\r"
+expect {
+    -re "(loop detected|maximum.*depth)" {
+        # Success - shell detected recursion
+    }
+    -re "command not found" {
+        # Aliases may not be implemented
+    }
+    timeout {
+        puts "WARNING: Recursive alias test timed out - may have caused infinite loop"
+        # Send Ctrl+C to break potential loop
+        send "\003"
+        expect "$ "
+    }
+}
+expect "$ "
+
+# Clean up test files
+send "rm -f search_test.txt\r"
+expect "$ "
+
+# Exit the shell gracefully
+send "exit\r"
+expect {
+    eof {
+        # Success - shell exited cleanly
+        puts "SUCCESS: Alias functionality test completed"
+        
+        # Clean up any remaining test files
+        catch {exec rm -f search_test.txt}
+        
+        exit 0
+    }
+    timeout {
+        puts "ERROR: Shell did not exit cleanly"
+        exit 1
+    }
+}

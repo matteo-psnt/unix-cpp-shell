@@ -1,0 +1,361 @@
+#!/usr/bin/expect -f
+
+# =============================================================================
+# Simple Command Integration Test
+# =============================================================================
+# This test verifies basic command execution in the shell
+# Tests: echo command and shell exit
+
+# Configure expect behavior
+set timeout 5
+log_user 1
+
+# Store original directory for validation
+set original_dir [pwd]
+
+# Spawn the shell executable
+spawn ./build/shell
+
+# Wait for the shell prompt
+expect {
+    "$ " {
+        # Success - we got the prompt
+    }
+    timeout {
+        puts "ERROR: Timeout waiting for shell prompt"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Shell exited unexpectedly"
+        exit 1
+    }
+}
+
+# Test 1: Basic echo command - expect exact output
+send "echo Hello, world!\r"
+expect {
+    "Hello, world!\r\n" {
+        # Success - exact match including line endings
+    }
+    "Hello, world!" {
+        # Acceptable - at least got the text
+    }
+    timeout {
+        puts "ERROR: Timeout waiting for echo output"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Shell died during echo test"
+        exit 1
+    }
+}
+
+# Wait for prompt after command execution
+expect {
+    "$ " {
+        # Got prompt back
+    }
+    timeout {
+        puts "ERROR: Shell prompt not returned after echo"
+        exit 1
+    }
+}
+
+# Test 2: Another simple command - verify exact output and prompt
+send "echo Testing 123\r"
+expect {
+    "Testing 123\r\n" {
+        # Success - exact match
+    }
+    "Testing 123" {
+        # Acceptable - at least got the text
+    }
+    timeout {
+        puts "ERROR: Second echo command timed out"
+        exit 1
+    }
+}
+expect {
+    "$ " {
+        # Got prompt back
+    }
+    timeout {
+        puts "ERROR: Prompt not returned after second echo"
+        exit 1
+    }
+}
+
+# Test 3: pwd command - verify it returns a valid absolute path
+send "pwd\r"
+expect {
+    -re "/\[^\\s\]+\r\n" {
+        # Success - got absolute path with proper format
+        set pwd_output $expect_out(0,string)
+        puts "PWD output: [string trim $pwd_output]"
+    }
+    -re "/.*" {
+        # Got some path starting with /
+    }
+    timeout {
+        puts "ERROR: pwd command timed out"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Shell died during pwd test"
+        exit 1
+    }
+}
+expect {
+    "$ " {
+        # Got prompt back
+    }
+    timeout {
+        puts "ERROR: Prompt not returned after pwd"
+        exit 1
+    }
+}
+
+# Test 4: Test cd command and verify with pwd
+send "cd /tmp\r"
+expect {
+    "$ " {
+        # CD should not produce output on success
+    }
+    -re "cd:.*" {
+        puts "ERROR: cd to /tmp failed: $expect_out(0,string)"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: cd command timed out"
+        exit 1
+    }
+}
+
+# Verify we're actually in /tmp
+send "pwd\r"
+expect {
+    "/tmp\r\n" {
+        # Success - exact match
+    }
+    "/tmp" {
+        # Acceptable - at least in the right directory
+    }
+    -re "/.*" {
+        puts "ERROR: cd to /tmp failed - pwd shows: $expect_out(0,string)"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: pwd after cd timed out"
+        exit 1
+    }
+}
+expect {
+    "$ " {
+        # Got prompt
+    }
+    timeout {
+        puts "ERROR: No prompt after pwd verification"
+        exit 1
+    }
+}
+
+# Test 5: cd back to original directory and verify
+send "cd -\r"
+expect {
+    -re "/.*\r\n" {
+        # Should print the directory it changed to
+        set cd_output [string trim $expect_out(0,string)]
+        puts "cd - output: $cd_output"
+    }
+    "$ " {
+        # No output, just prompt - acceptable
+    }
+    timeout {
+        puts "ERROR: cd - command timed out"
+        exit 1
+    }
+}
+expect {
+    "$ " {
+        # Got prompt
+    }
+    timeout {
+        puts "ERROR: No prompt after cd -"
+        exit 1
+    }
+}
+
+# Verify we're back in original directory
+send "pwd\r"
+expect {
+    -re "/.*\r\n" {
+        set current_dir [string trim $expect_out(0,string)]
+        # Should be back to original or at least not in /tmp
+        if {$current_dir == "/tmp"} {
+            puts "ERROR: cd - failed, still in /tmp"
+            exit 1
+        }
+        puts "Back in directory: $current_dir"
+    }
+    timeout {
+        puts "ERROR: pwd verification after cd - timed out"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 6: Test type command for built-in - exact output validation
+send "type echo\r"
+expect {
+    -re "type echo.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    "echo is a shell builtin\r\n" {
+        # Perfect - exact expected output
+    }
+    "echo is a shell builtin" {
+        # Acceptable - correct text
+    }
+    -re "echo.*builtin" {
+        # Acceptable variation
+    }
+    -re "echo.*" {
+        puts "ERROR: Unexpected type output for builtin: $expect_out(0,string)"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: type echo command timed out"
+        exit 1
+    }
+}
+expect {
+    "$ " {
+        # Got prompt
+    }
+    timeout {
+        puts "ERROR: No prompt after type echo"
+        exit 1
+    }
+}
+
+# Test 7: Test type command for external command
+send "type ls\r"
+expect {
+    -re "type ls.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    -re "ls is (/\[^\\s\]+/ls)\r\n" {
+        # Perfect - got full path to ls
+        set ls_path $expect_out(1,string)
+        puts "ls found at: $ls_path"
+    }
+    -re "ls is (/\[^\\s\]+)" {
+        # Good - got a path
+        set ls_path $expect_out(1,string)
+        puts "ls path: $ls_path"
+    }
+    -re "ls.*not found" {
+        puts "ERROR: ls command not found in PATH"
+        exit 1
+    }
+    timeout {
+        puts "ERROR: type ls command timed out"
+        exit 1
+    }
+}
+expect {
+    "$ " {
+        # Got prompt
+    }
+    timeout {
+        puts "ERROR: No prompt after type ls"
+        exit 1
+    }
+}
+
+# Test 8: Test which command
+send "which ls\r"
+expect {
+    -re "/.*ls" {
+        # Success - got path to ls
+    }
+    timeout {
+        puts "ERROR: Timeout waiting for which output"
+        exit 1
+    }
+}
+expect "$ "
+
+# Test 9: Test command with multiple arguments
+send "echo one two three\r"
+expect "one two three"
+expect "$ "
+
+# Test 10: Test error handling for invalid command
+send "nonexistentcommand123\r"
+expect {
+    -re "nonexistentcommand123\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    -re "nonexistentcommand123: command not found\r\n" {
+        # Perfect - exact error format
+    }
+    -re "nonexistentcommand123.*command not found" {
+        # Good - contains expected error
+    }
+    -re "(command not found|No such file)" {
+        # Acceptable - some error message
+    }
+    timeout {
+        puts "ERROR: No error message for invalid command"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Shell crashed on invalid command"
+        exit 1
+    }
+}
+expect {
+    "$ " {
+        # Shell should remain functional after error
+    }
+    timeout {
+        puts "ERROR: Shell not responsive after invalid command"
+        exit 1
+    }
+}
+
+# Test 11: Test history command (if implemented)
+send "history\r"
+expect "$ "
+
+# Test 12: Test echo with quotes
+send "echo 'hello world'\r"
+expect "hello world"
+expect "$ "
+
+# Test 13: Test echo with double quotes
+send "echo \"hello world\"\r"
+expect "hello world"
+expect "$ "
+
+# Test 14: Test empty command (just press enter)
+send "\r"
+expect "$ "
+
+# Exit the shell gracefully
+send "exit\r"
+expect {
+    eof {
+        # Success - shell exited cleanly
+        puts "SUCCESS: Simple command test passed"
+        exit 0
+    }
+    timeout {
+        puts "ERROR: Shell did not exit cleanly"
+        exit 1
+    }
+}

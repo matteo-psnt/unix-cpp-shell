@@ -14,11 +14,47 @@ std::unordered_map<std::string, CommandHandler> command_table = {
     },
     {
         "echo", [](const std::vector<std::string> &args) {
-       for (size_t i = 1; i < args.size(); ++i) {
-         std::cout << args[i] << (i == args.size() - 1 ? "" : " ");
-       }
-       std::cout << std::endl;
-       return false;
+            bool interpret_escapes = false;
+            size_t start_index = 1;
+            
+            // Check for -e flag
+            if (args.size() > 1 && args[1] == "-e") {
+                interpret_escapes = true;
+                start_index = 2;
+            }
+            
+            for (size_t i = start_index; i < args.size(); ++i) {
+                std::string output = args[i];
+                
+                if (interpret_escapes) {
+                    // Process escape sequences
+                    std::string processed;
+                    for (size_t j = 0; j < output.size(); ++j) {
+                        if (output[j] == '\\' && j + 1 < output.size()) {
+                            char next = output[j + 1];
+                            switch (next) {
+                                case 'n': processed += '\n'; break;
+                                case 't': processed += '\t'; break;
+                                case 'r': processed += '\r'; break;
+                                case 'b': processed += '\b'; break;
+                                case 'a': processed += '\a'; break;
+                                case 'f': processed += '\f'; break;
+                                case 'v': processed += '\v'; break;
+                                case '\\': processed += '\\'; break;
+                                default: processed += '\\'; processed += next; break;
+                            }
+                            ++j; // Skip the next character
+                        } else {
+                            processed += output[j];
+                        }
+                    }
+                    output = processed;
+                }
+                
+                std::cout << output << (i == args.size() - 1 ? "" : " ");
+            }
+            std::cout << std::endl;
+            return false;
         }
     },
     {
@@ -123,6 +159,52 @@ std::unordered_map<std::string, CommandHandler> command_table = {
        else
          std::cerr << args[1] << ": command not found\n";
        return false;
+        }
+    },
+    {
+        "export", [](const std::vector<std::string>& args) {
+            if (args.size() < 2) {
+                std::cerr << "export: missing argument" << std::endl;
+                return false;
+            }
+            
+            for (size_t i = 1; i < args.size(); ++i) {
+                const std::string& arg = args[i];
+                size_t eq_pos = arg.find('=');
+                
+                if (eq_pos != std::string::npos) {
+                    std::string name = arg.substr(0, eq_pos);
+                    std::string value = arg.substr(eq_pos + 1);
+                    
+                    if (setenv(name.c_str(), value.c_str(), 1) != 0) {
+                        perror("export");
+                    }
+                } else {
+                    // Export existing variable (make it available to child processes)
+                    const char* value = std::getenv(arg.c_str());
+                    if (value) {
+                        if (setenv(arg.c_str(), value, 1) != 0) {
+                            perror("export");
+                        }
+                    } else {
+                        // Variable doesn't exist, set it to empty
+                        if (setenv(arg.c_str(), "", 1) != 0) {
+                            perror("export");
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+    },
+    {
+        "true", [](const std::vector<std::string>& /*args*/) {
+            return false; // true command never causes shell exit
+        }
+    },
+    {
+        "false", [](const std::vector<std::string>& /*args*/) {
+            return false; // false command also never causes shell exit, but indicates failure
         }
     }
 };
