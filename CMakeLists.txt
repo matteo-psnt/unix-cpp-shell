@@ -1,8 +1,13 @@
 # Enable vcpkg toolchain
- if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-   set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
-       CACHE STRING "Vcpkg toolchain file")
- endif()
+if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+  if(DEFINED ENV{CMAKE_TOOLCHAIN_FILE})
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{CMAKE_TOOLCHAIN_FILE}"
+        CACHE STRING "Vcpkg toolchain file")
+  else()
+    set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+        CACHE STRING "Vcpkg toolchain file")
+  endif()
+endif()
 
 cmake_minimum_required(VERSION 3.15)
 project(unix-shell CXX)
