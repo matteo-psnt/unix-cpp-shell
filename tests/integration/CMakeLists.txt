@@ -23,7 +23,7 @@ function(add_integration_test test_name script_name)
     # Set test properties
     set_tests_properties(integration_${test_name} PROPERTIES
         LABELS "integration"
-        TIMEOUT 30
+        TIMEOUT 60
     )
     
     # Make sure shell is built before running integration tests

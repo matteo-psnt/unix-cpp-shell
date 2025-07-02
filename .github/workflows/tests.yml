@@ -45,3 +45,5 @@ jobs:
     
     - name: Run tests
       run: ./run_tests.sh
+      env:
+        DEBIAN_FRONTEND: noninteractive

@@ -254,9 +254,16 @@ bool execute_command(const std::vector<std::string>& tokens) {
     const std::string& command_name = tokens[0];
     auto it = command_table.find(command_name);
     if (it != command_table.end()) {
-        return it->second(tokens);
+        bool result = it->second(tokens);
+        // Ensure output is flushed after built-in commands
+        std::cout.flush();
+        std::cerr.flush();
+        return result;
     } else {
         run_external_command(tokens);
+        // Ensure output is flushed after external commands
+        std::cout.flush();
+        std::cerr.flush();
         return false;
     }
 }

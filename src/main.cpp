@@ -3,6 +3,7 @@
 #include <readline/readline.h>
 #include <string>
 #include <vector>
+#include <unistd.h>
 #include "command_parser.h"
 #include "completion.h"
 #include "pipe_utils.h"
@@ -12,6 +13,11 @@
 int main() {
     // Configure readline to use our custom completer
     rl_attempted_completion_function = shell_completer;
+    
+    // Disable readline in non-interactive environments (like CI)
+    if (!isatty(STDIN_FILENO)) {
+        rl_outstream = stderr;
+    }
 
     std::cout << std::unitbuf;
     std::cerr << std::unitbuf;
