@@ -25,25 +25,36 @@ jobs:
         ./vcpkg/bootstrap-vcpkg.sh
         echo "CMAKE_TOOLCHAIN_FILE=${{ github.workspace }}/vcpkg/scripts/buildsystems/vcpkg.cmake" >> $GITHUB_ENV
     
-    - name: Cache vcpkg packages
-      uses: actions/cache@v4
-      with:
-        path: |
-          vcpkg/installed
-          vcpkg/buildtrees
-        key: ${{ runner.os }}-vcpkg-${{ hashFiles('vcpkg.json') }}
-        restore-keys: |
-          ${{ runner.os }}-vcpkg-
+    - name: Clean build directory (if cache issues)
+      run: |
+        if [ -d "build" ]; then
+          echo "Cleaning existing build directory"
+          rm -rf build
+        fi
     
-    - name: Cache CMake build
-      uses: actions/cache@v4
-      with:
-        path: build
-        key: ${{ runner.os }}-cmake-${{ hashFiles('CMakeLists.txt', 'src/**/*') }}
-        restore-keys: |
-          ${{ runner.os }}-cmake-
+    # Temporarily disabled cache for debugging
+    # - name: Cache vcpkg packages
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: |
+    #       vcpkg/installed
+    #       vcpkg/buildtrees
+    #     key: ${{ runner.os }}-vcpkg-v2-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-vcpkg-v2-
+    #       ${{ runner.os }}-vcpkg-
+    
+    # - name: Cache CMake build
+    #   uses: actions/cache@v4
+    #   with:
+    #     path: build
+    #     key: ${{ runner.os }}-cmake-v2-${{ hashFiles('CMakeLists.txt', 'src/**/*', 'vcpkg.json') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-cmake-v2-
+    #       ${{ runner.os }}-cmake-
     
     - name: Run tests
       run: ./run_tests.sh
       env:
+        CI: true
         DEBIAN_FRONTEND: noninteractive
