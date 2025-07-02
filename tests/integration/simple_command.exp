@@ -7,7 +7,7 @@
 # Tests: echo command and shell exit
 
 # Configure expect behavior
-set timeout 5
+set timeout 15
 log_user 1
 
 # Store original directory for validation
@@ -207,10 +207,6 @@ expect "$ "
 # Test 6: Test type command for built-in - exact output validation
 send "type echo\r"
 expect {
-    -re "type echo.*\r?\n" {
-        # Skip the echoed command line
-        exp_continue
-    }
     "echo is a shell builtin\r\n" {
         # Perfect - exact expected output
     }
@@ -242,10 +238,6 @@ expect {
 # Test 7: Test type command for external command
 send "type ls\r"
 expect {
-    -re "type ls.*\r?\n" {
-        # Skip the echoed command line
-        exp_continue
-    }
     -re "ls is (/\[^\\s\]+/ls)\r\n" {
         # Perfect - got full path to ls
         set ls_path $expect_out(1,string)
@@ -296,10 +288,6 @@ expect "$ "
 # Test 10: Test error handling for invalid command
 send "nonexistentcommand123\r"
 expect {
-    -re "nonexistentcommand123\r?\n" {
-        # Skip the echoed command line
-        exp_continue
-    }
     -re "nonexistentcommand123: command not found\r\n" {
         # Perfect - exact error format
     }

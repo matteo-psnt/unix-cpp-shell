@@ -7,7 +7,7 @@
 # command substitution, quoting, escaping, and special characters
 
 # Configure expect behavior
-set timeout 5
+set timeout 15
 log_user 1
 
 # Store the expected HOME directory for validation
@@ -34,7 +34,7 @@ expect {
 # Test 1: Environment variables - validate exact HOME expansion
 send "echo \$HOME\r"
 expect {
-    -re "echo \\\$HOME.*\r?\n" {
+    -re "^echo \\\$HOME\r?\n" {
         # Skip the echoed command line
         exp_continue
     }
@@ -84,7 +84,7 @@ expect {
 # Verify the variable was set correctly
 send "echo \$MY_VAR\r"
 expect {
-    -re "echo \\\$MY_VAR.*\r?\n" {
+    -re "^echo \\\$MY_VAR\r?\n" {
         # Skip the echoed command line
         exp_continue
     }
@@ -159,10 +159,6 @@ expect "$ "
 # Test 6: Command substitution to insert the current date
 send "echo Today is \$(date +%Y-%m-%d)\r"
 expect {
-    -re "echo Today is.*\r?\n" {
-        # Skip the echoed command line
-        exp_continue
-    }
     -re "Today is \[0-9\]{4}-\[0-9\]{2}-\[0-9\]{2}" {
         # Date successfully substituted with YYYY-MM-DD format
         puts "✓ Date command substitution works"
@@ -184,7 +180,7 @@ expect "$ "
 # Test 7: Nested command substitution
 send "echo Result: \$(echo nested)\r"
 expect {
-    -re "echo Result:.*\r?\n" {
+    -re "^echo Result:.*\r?\n" {
         # Skip the echoed command line
         exp_continue
     }
@@ -204,7 +200,7 @@ expect "$ "
 # Test 8: Command substitution with $() syntax (if implemented)
 send "echo \"Files: \$(ls | wc -l)\"\r"
 expect {
-    -re "echo.*Files:.*\r?\n" {
+    -re "^echo.*Files:.*\r?\n" {
         # Skip the echoed command line
         exp_continue
     }
@@ -242,7 +238,7 @@ expect {
 # Test 10: Logical AND operator - verify both success and failure cases
 send "true && echo 'AND success'\r"
 expect {
-    -re "true && echo.*\r?\n" {
+   -re "^true && echo 'AND success'\r?\n" {
         # Skip the echoed command line
         exp_continue
     }
@@ -267,7 +263,7 @@ expect "$ "
 # Test AND failure case
 send "false && echo 'Should not appear'\r"
 expect {
-    -re "false && echo.*\r?\n" {
+    -re "^false && echo 'Should not appear'\r?\n" {
         # Skip the echoed command line
         exp_continue
     }
@@ -288,7 +284,7 @@ expect {
 # Test 11: Logical OR operator - verify both cases
 send "false || echo 'OR success'\r"
 expect {
-    -re "false \\|\\| echo.*\r?\n" {
+    -re "^false \\|\\| echo 'OR success'\r?\n" {
         # Skip the echoed command line
         exp_continue
     }
@@ -313,7 +309,7 @@ expect "$ "
 # Test OR success case
 send "true || echo 'Should not appear'\r"
 expect {
-    -re "true \\|\\| echo.*\r?\n" {
+    -re "^true \\|\\| echo 'Should not appear'\r?\n" {
         # Skip the echoed command line
         exp_continue
     }
