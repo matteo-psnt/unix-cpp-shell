@@ -207,21 +207,15 @@ expect "$ "
 # Test 6: Test type command for built-in - exact output validation
 send "type echo\r"
 expect {
-    "echo is a shell builtin\r\n" {
-        # Perfect - exact expected output
-    }
-    "echo is a shell builtin" {
-        # Acceptable - correct text
-    }
-    -re "echo.*builtin" {
-        # Acceptable variation
-    }
-    -re "echo.*" {
-        puts "ERROR: Unexpected type output for builtin: $expect_out(0,string)"
-        exit 1
+    -re "echo is a shell builtin" {
+        # Success - got the expected output
     }
     timeout {
         puts "ERROR: type echo command timed out"
+        exit 1
+    }
+    eof {
+        puts "ERROR: Shell died during type echo test"
         exit 1
     }
 }

@@ -9,6 +9,7 @@
 #include "command_parser.h"
 #include "redirect_guard.h"
 #include "pipe_utils.h"
+#include "glob_utils.h"
 #include <cstdio>
 
 static std::string run_subcommand(const std::string& cmd) {
@@ -280,6 +281,8 @@ std::vector<CommandSequence> parse_command_sequence(const std::string& input) {
             if (!current_command.empty()) {
                 CommandSequence seq;
                 seq.tokens = tokenize_input(current_command);
+                // Apply glob expansion after tokenization
+                seq.tokens = expand_glob_patterns(seq.tokens);
                 seq.operator_type = current_operator;
                 sequences.push_back(seq);
                 current_command.clear();
@@ -289,6 +292,8 @@ std::vector<CommandSequence> parse_command_sequence(const std::string& input) {
             if (!current_command.empty()) {
                 CommandSequence seq;
                 seq.tokens = tokenize_input(current_command);
+                // Apply glob expansion after tokenization
+                seq.tokens = expand_glob_patterns(seq.tokens);
                 seq.operator_type = current_operator;
                 sequences.push_back(seq);
                 current_command.clear();
@@ -299,6 +304,8 @@ std::vector<CommandSequence> parse_command_sequence(const std::string& input) {
             if (!current_command.empty()) {
                 CommandSequence seq;
                 seq.tokens = tokenize_input(current_command);
+                // Apply glob expansion after tokenization
+                seq.tokens = expand_glob_patterns(seq.tokens);
                 seq.operator_type = current_operator;
                 sequences.push_back(seq);
                 current_command.clear();
@@ -314,6 +321,8 @@ std::vector<CommandSequence> parse_command_sequence(const std::string& input) {
     if (!current_command.empty()) {
         CommandSequence seq;
         seq.tokens = tokenize_input(current_command);
+        // Apply glob expansion after tokenization
+        seq.tokens = expand_glob_patterns(seq.tokens);
         seq.operator_type = current_operator;
         sequences.push_back(seq);
     }
