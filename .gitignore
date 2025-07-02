@@ -55,6 +55,8 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 
+*.txt
+*.log
 .DS_Store
 build/
 vcpkg/

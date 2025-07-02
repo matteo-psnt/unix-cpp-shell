@@ -3,6 +3,7 @@
 #include <sstream>
 #include <vector>
 #include <filesystem>
+#include <ctime>
 #include "shell_utils.h"
 
 TEST(TrimWhitespaceTest, RemovesLeadingAndTrailingSpaces) {
@@ -146,4 +147,14 @@ TEST(RunExternalCommandTest, NonexistentCommandPrintsError) {
     run_external_command({"definitelynotacommand12345"});
     std::string err = testing::internal::GetCapturedStderr();
     EXPECT_NE(err.find("command not found"), std::string::npos);
+}
+
+TEST(CommandSubstitutionTest, SubstitutesDate) {
+    std::vector<std::string> tokens =
+        tokenize_input("echo Today is $(date +%Y-%m-%d)");
+    ASSERT_GE(tokens.size(), 4u);
+    char datebuf[11];
+    time_t t = time(nullptr);
+    strftime(datebuf, sizeof(datebuf), "%Y-%m-%d", localtime(&t));
+    EXPECT_EQ(tokens[3], std::string(datebuf));
 }

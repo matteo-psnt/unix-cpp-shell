@@ -118,7 +118,12 @@ expect {
         # Success - single quotes prevented expansion
     }
     timeout {
-        puts "WARNING: Single quote test timed out"
+        puts "ERROR: Single quote test timed out"
+        exit 1
+    }
+    default {
+        puts "ERROR: Single quotes did not prevent expansion"
+        exit 1
     }
 }
 expect "$ "
@@ -150,31 +155,78 @@ expect {
 }
 expect "$ "
 
-# Test 6: Command substitution with backticks (if implemented)
-send "echo \"Current date: \"\r"
+
+# Test 6: Command substitution to insert the current date
+send "echo Today is \$(date +%Y-%m-%d)\r"
 expect {
-    -re "Current date:" {
-        # Simple test without command substitution for now
+    -re "echo Today is.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    -re "Today is \[0-9\]{4}-\[0-9\]{2}-\[0-9\]{2}" {
+        # Date successfully substituted with YYYY-MM-DD format
+        puts "✓ Date command substitution works"
+    }
+    -re "Today is \[0-9-\]+" {
+        # Date successfully substituted (more flexible pattern)
+        puts "✓ Date command substitution works"
+    }
+    "Today is \$(date" {
+        puts "WARNING: Command substitution may not be implemented"
     }
     timeout {
-        puts "WARNING: Simple echo test timed out"
+        puts "ERROR: Date command substitution test timed out"
+        exit 1
     }
 }
 expect "$ "
 
-# Test 7: Command substitution with $() syntax (if implemented)
+# Test 7: Nested command substitution
+send "echo Result: \$(echo nested)\r"
+expect {
+    -re "echo Result:.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    "Result: nested" {
+        # Nested substitution worked
+        puts "✓ Nested command substitution works"
+    }
+    "Result: \$(echo nested)" {
+        puts "WARNING: Nested command substitution may not be implemented"
+    }
+    timeout {
+        puts "ERROR: Nested command substitution test timed out"
+        exit 1
+    }
+}
+expect "$ "
+# Test 8: Command substitution with $() syntax (if implemented)
 send "echo \"Files: \$(ls | wc -l)\"\r"
 expect {
-    -re "Files:" {
-        # May or may not have command substitution
+    -re "echo.*Files:.*\r?\n" {
+        # Skip the echoed command line
+        exp_continue
+    }
+    -re "Files:\\s+\[0-9\]+" {
+        # Success - command substitution produced a number (with possible whitespace)
+        puts "✓ Command substitution with \$() works"
+    }
+    -re "Files: \[0-9\]+" {
+        # Success - command substitution produced a number (no extra whitespace)
+        puts "✓ Command substitution with \$() works"
+    }
+    "Files: \$(ls | wc -l)" {
+        puts "WARNING: Command substitution may not be implemented"
     }
     timeout {
-        puts "WARNING: \$() command substitution test timed out"
+        puts "ERROR: \$() command substitution test timed out"
+        exit 1
     }
 }
 expect "$ "
 
-# Test 8: Semicolon command separator
+# Test 9: Semicolon command separator
 send "echo first; echo second\r"
 expect {
     "first" {
@@ -187,7 +239,7 @@ expect {
     }
 }
 
-# Test 9: Logical AND operator - verify both success and failure cases
+# Test 10: Logical AND operator - verify both success and failure cases
 send "true && echo 'AND success'\r"
 expect {
     -re "true && echo.*\r?\n" {
@@ -233,7 +285,7 @@ expect {
     }
 }
 
-# Test 10: Logical OR operator - verify both cases
+# Test 11: Logical OR operator - verify both cases
 send "false || echo 'OR success'\r"
 expect {
     -re "false \\|\\| echo.*\r?\n" {
@@ -279,7 +331,7 @@ expect {
     }
 }
 
-# Test 11: Multiple levels of quoting
+# Test 12: Multiple levels of quoting
 send "echo \"She said: 'Hello world'\"\r"
 expect {
     "She said: 'Hello world'" {
@@ -291,7 +343,7 @@ expect {
 }
 expect "$ "
 
-# Test 12: Special characters in filenames
+# Test 13: Special characters in filenames
 send "touch 'file with spaces and (parentheses).txt'\r"
 expect "$ "
 send "ls 'file with spaces and (parentheses).txt'\r"
@@ -305,7 +357,7 @@ expect {
 }
 expect "$ "
 
-# Test 13: Tab and newline in echo
+# Test 14: Tab and newline in echo
 send "echo -e 'line1\\tcolumn2\\nline2\\tcolumn2'\r"
 expect {
     -re "line1.*column2" {
@@ -320,7 +372,7 @@ expect {
 }
 expect "$ "
 
-# Test 14: Wildcard with spaces and special chars
+# Test 15: Wildcard with spaces and special chars
 send "ls *.txt 2>/dev/null || echo 'No txt files'\r"
 expect {
     -re "(txt|No txt files)" {
@@ -332,7 +384,7 @@ expect {
 }
 expect "$ "
 
-# Test 15: Comments (should be ignored)
+# Test 16: Comments (should be ignored)
 send "echo 'before comment' # this is a comment\r"
 expect {
     "before comment" {

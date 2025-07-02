@@ -9,6 +9,22 @@
 #include "command_parser.h"
 #include "redirect_guard.h"
 #include "pipe_utils.h"
+#include <cstdio>
+
+static std::string run_subcommand(const std::string& cmd) {
+    std::string output;
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) return output;
+    char buf[256];
+    while (fgets(buf, sizeof(buf), pipe)) {
+        output += buf;
+    }
+    pclose(pipe);
+    while (!output.empty() && (output.back() == '\n' || output.back() == '\r')) {
+        output.pop_back();
+    }
+    return output;
+}
 
 std::string trim_whitespace(const std::string& str) {
     const std::string whitespace = " \t\n\r\f\v";
@@ -24,22 +40,49 @@ std::vector<std::string> tokenize_input(const std::string& input) {
     std::string token;
 
     enum class State { Normal, Single, Double } state = State::Normal;
+    bool token_from_single_quotes = false;
+    
     for (size_t i = 0; i < input.size(); ++i) {
         char c = input[i];
 
         switch (state) {
             case State::Normal:
-                if (std::isspace(static_cast<unsigned char>(c))) {
+                if (c == '$' && i + 1 < input.size() && input[i+1] == '(') {
                     if (!token.empty()) {
-                        if (token[0] == '$' && token.size() > 1) {
+                        if (!token_from_single_quotes && token[0] == '$' && token.size() > 1) {
                             const char* val = std::getenv(token.c_str() + 1);
                             token = val ? val : "";
                         }
                         tokens.push_back(token);
                         token.clear();
+                        token_from_single_quotes = false;
+                    }
+                    i += 2;
+                    int depth = 1;
+                    std::string subcmd;
+                    for (; i < input.size() && depth > 0; ++i) {
+                        if (input[i] == '(') depth++;
+                        else if (input[i] == ')') depth--;
+                        if (depth > 0) subcmd += input[i];
+                    }
+                    std::string result = run_subcommand(subcmd);
+                    std::istringstream iss(result);
+                    std::string word;
+                    while (iss >> word) tokens.push_back(word);
+                    --i;
+                } else if (std::isspace(static_cast<unsigned char>(c))) {
+                    if (!token.empty()) {
+                        if (!token_from_single_quotes && token[0] == '$' && token.size() > 1) {
+                            const char* val = std::getenv(token.c_str() + 1);
+                            token = val ? val : "";
+                        }
+                        tokens.push_back(token);
+                        token.clear();
+                        token_from_single_quotes = false;
                     }
                 } else if (c == '\'') {
                     state = State::Single;
+                    token_from_single_quotes = true;
                 } else if (c == '"') {
                     state = State::Double;
                 } else if (c == '\\' && i + 1 < input.size()) {
@@ -62,7 +105,19 @@ std::vector<std::string> tokenize_input(const std::string& input) {
                 break;
 
             case State::Double:
-                if (c == '\\' && i + 1 < input.size()) {
+                if (c == '$' && i + 1 < input.size() && input[i+1] == '(') {
+                    i += 2;
+                    int depth = 1;
+                    std::string subcmd;
+                    for (; i < input.size() && depth > 0; ++i) {
+                        if (input[i] == '(') depth++;
+                        else if (input[i] == ')') depth--;
+                        if (depth > 0) subcmd += input[i];
+                    }
+                    std::string result = run_subcommand(subcmd);
+                    token += result;
+                    --i;
+                } else if (c == '\\' && i + 1 < input.size()) {
                     char next = input[i + 1];
                     if (next == '\\' || next == '"' || next == '$') {
                         token += next;
@@ -102,7 +157,7 @@ std::vector<std::string> tokenize_input(const std::string& input) {
     }
 
     if (!token.empty()) {
-        if (token[0] == '$' && token.size() > 1) {
+        if (!token_from_single_quotes && token[0] == '$' && token.size() > 1) {
             const char* val = std::getenv(token.c_str() + 1);
             token = val ? val : "";
         }
@@ -153,7 +208,19 @@ void run_external_command(const std::vector<std::string>& tokens) {
         std::cerr << "Error: No command provided for external execution." << std::endl;
         return;
     }
-    const std::string exec_path_str = find_executable(tokens[0]);
+    std::vector<std::string> expanded_tokens;
+    for (const auto& t : tokens) {
+        if (t.rfind("$(", 0) == 0 && t.size() > 2 && t.back() == ')') {
+            std::string subcmd = t.substr(2, t.size() - 3);
+            std::string result = run_subcommand(subcmd);
+            std::istringstream iss(result);
+            std::string word;
+            while (iss >> word) expanded_tokens.push_back(word);
+        } else {
+            expanded_tokens.push_back(t);
+        }
+    }
+    const std::string exec_path_str = find_executable(expanded_tokens[0]);
     if (exec_path_str.empty()) {
         std::cerr << tokens[0] << ": command not found" << std::endl;
         return;
@@ -165,8 +232,8 @@ void run_external_command(const std::vector<std::string>& tokens) {
     }
     if (pid == 0) {
         std::vector<char*> argv_c;
-        argv_c.reserve(tokens.size() + 1);
-        for (const auto& token : tokens) {
+        argv_c.reserve(expanded_tokens.size() + 1);
+        for (const auto& token : expanded_tokens) {
             argv_c.push_back(const_cast<char*>(token.c_str()));
         }
         argv_c.push_back(nullptr);
