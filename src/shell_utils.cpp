@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <stdexcept>
 #include <sys/wait.h>
 #include <vector>
 #include "command_table.h"
@@ -10,6 +11,7 @@
 #include "redirect_guard.h"
 #include "pipe_utils.h"
 #include "glob_utils.h"
+#include "alias_manager.h"
 #include <cstdio>
 
 static std::string run_subcommand(const std::string& cmd) {
@@ -252,16 +254,26 @@ void run_external_command(const std::vector<std::string>& tokens) {
 
 bool execute_command(const std::vector<std::string>& tokens) {
     if (tokens.empty()) return false;
-    const std::string& command_name = tokens[0];
+    
+    std::vector<std::string> expanded_tokens;
+    try {
+        expanded_tokens = alias_manager.expand_aliases(tokens);
+    } catch (const std::runtime_error& e) {
+        // Handle alias recursion
+        std::cerr << e.what() << std::endl;
+        return false;
+    }
+    
+    const std::string& command_name = expanded_tokens[0];
     auto it = command_table.find(command_name);
     if (it != command_table.end()) {
-        bool result = it->second(tokens);
+        bool result = it->second(expanded_tokens);
         // Ensure output is flushed after built-in commands
         std::cout.flush();
         std::cerr.flush();
         return result;
     } else {
-        run_external_command(tokens);
+        run_external_command(expanded_tokens);
         // Ensure output is flushed after external commands
         std::cout.flush();
         std::cerr.flush();

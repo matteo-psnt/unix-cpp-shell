@@ -29,10 +29,10 @@ expect {
 }
 
 # Test 1: Create a simple alias
-send "alias ll='ls -l'\r"
+send "alias myls='ls -l'\r"
 expect {
     "$ " {
-        # Success - alias created (or command not recognized)
+        puts "SUCCESS: Alias creation command accepted"
     }
     timeout {
         puts "ERROR: Timeout after alias creation"
@@ -41,33 +41,49 @@ expect {
 }
 
 # Test 2: Use the created alias
-send "ll\r"
+send "myls\r"
 expect {
     -re "(total|drwx|ls:)" {
-        # Success - alias was executed and ran ls -l
+        puts "SUCCESS: Alias execution works"
     }
-    -re "(command not found|ll)" {
-        # Alias functionality may not be implemented
-        puts "WARNING: Alias functionality may not be implemented"
+    -re "command not found" {
+        puts "ERROR: Alias functionality not implemented"
+        exit 1
     }
     timeout {
-        puts "WARNING: Alias usage test timed out"
+        puts "ERROR: Alias usage test timed out"
+        exit 1
     }
 }
 expect "$ "
 
 # Test 3: Create alias with multiple commands
 send "alias greet='echo Hello && echo World'\r"
-expect "$ "
+expect {
+    "$ " {
+        puts "SUCCESS: Multi-command alias creation accepted"
+    }
+    timeout {
+        puts "ERROR: Timeout after multi-command alias creation"
+        exit 1
+    }
+}
 
 # Test 4: Use multi-command alias
 send "greet\r"
 expect {
-    -re "(Hello.*World|command not found)" {
-        # Either worked or aliases not implemented
+    "Hello" {
+        expect "World" {
+            puts "SUCCESS: Multi-command alias works"
+        }
+    }
+    -re "command not found" {
+        puts "ERROR: Multi-command alias not implemented"
+        exit 1
     }
     timeout {
-        puts "WARNING: Multi-command alias test timed out"
+        puts "ERROR: Multi-command alias test timed out"
+        exit 1
     }
 }
 expect "$ "
@@ -75,21 +91,35 @@ expect "$ "
 # Test 5: List all aliases
 send "alias\r"
 expect {
-    -re "(ll=|greet=|No aliases)" {
-        # Success - either showed aliases or reported none
+    -re "(myls=|greet=)" {
+        puts "SUCCESS: Alias listing works"
+    }
+    -re "No aliases" {
+        puts "ERROR: Created aliases not found when listing"
+        exit 1
     }
     -re "command not found" {
-        puts "WARNING: alias command may not be implemented"
+        puts "ERROR: alias command not implemented"
+        exit 1
     }
     timeout {
-        puts "WARNING: Alias listing test timed out"
+        puts "ERROR: Alias listing test timed out"
+        exit 1
     }
 }
 expect "$ "
 
 # Test 6: Create alias with parameters
 send "alias search='grep -r'\r"
-expect "$ "
+expect {
+    "$ " {
+        puts "SUCCESS: Parameterized alias creation accepted"
+    }
+    timeout {
+        puts "ERROR: Timeout after parameterized alias creation"
+        exit 1
+    }
+}
 
 # Test 7: Use alias with parameters
 send "echo 'test content' > search_test.txt\r"
@@ -97,13 +127,15 @@ expect "$ "
 send "search 'test' .\r"
 expect {
     -re "(test content|search_test.txt)" {
-        # Success - alias with parameters worked
+        puts "SUCCESS: Parameterized alias works"
     }
     -re "command not found" {
-        puts "WARNING: Parameterized aliases may not be implemented"
+        puts "ERROR: Parameterized aliases not implemented"
+        exit 1
     }
     timeout {
-        puts "WARNING: Parameterized alias test timed out"
+        puts "ERROR: Parameterized alias test timed out"
+        exit 1
     }
 }
 expect "$ "
@@ -113,15 +145,19 @@ send "alias echo='echo ALIASED'\r"
 expect "$ "
 send "echo test\r"
 expect {
-    "ALIASED" {
-        # Success - alias overrode built-in command
+    -re "ALIASED test" {
+        puts "SUCCESS: Alias overrides built-in command"
     }
-    "test" {
-        # Built-in was used, alias may not override built-ins
-        puts "WARNING: Aliases may not override built-in commands"
+    -re "loop detected" {
+        puts "SUCCESS: Alias recursion correctly detected"
+    }
+    -re "^test\r?\n" {
+        puts "ERROR: Aliases don't override built-in commands"
+        exit 1
     }
     timeout {
-        puts "WARNING: Alias override test timed out"
+        puts "ERROR: Alias override test timed out"
+        exit 1
     }
 }
 expect "$ "
@@ -133,7 +169,8 @@ expect {
         # Command completed (successfully or not)
     }
     timeout {
-        puts "WARNING: unalias command test timed out"
+        puts "ERROR: unalias command test timed out"
+        exit 1
     }
 }
 
@@ -141,14 +178,15 @@ expect {
 send "echo test_after_unalias\r"
 expect {
     "test_after_unalias" {
-        # Success - back to normal echo behavior
+        puts "SUCCESS: unalias works correctly"
     }
     "ALIASED" {
-        # Alias still active, unalias may not be implemented
-        puts "WARNING: unalias may not be implemented"
+        puts "ERROR: unalias not implemented or not working"
+        exit 1
     }
     timeout {
-        puts "WARNING: Post-unalias test timed out"
+        puts "ERROR: Post-unalias test timed out"
+        exit 1
     }
 }
 expect "$ "
@@ -159,16 +197,17 @@ expect "$ "
 send "test_recursive\r"
 expect {
     -re "(loop detected|maximum.*depth)" {
-        # Success - shell detected recursion
+        puts "SUCCESS: Recursive alias detection works"
     }
     -re "command not found" {
-        # Aliases may not be implemented
+        puts "ERROR: Aliases not implemented"
+        exit 1
     }
     timeout {
-        puts "WARNING: Recursive alias test timed out - may have caused infinite loop"
-        # Send Ctrl+C to break potential loop
+        puts "ERROR: Recursive alias test timed out - may have caused infinite loop"
         send "\003"
         expect "$ "
+        exit 1
     }
 }
 expect "$ "
@@ -181,12 +220,8 @@ expect "$ "
 send "exit\r"
 expect {
     eof {
-        # Success - shell exited cleanly
-        puts "SUCCESS: Alias functionality test completed"
-        
-        # Clean up any remaining test files
+        puts "SUCCESS: All alias tests passed successfully!"
         catch {exec rm -f search_test.txt}
-        
         exit 0
     }
     timeout {

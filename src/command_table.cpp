@@ -3,7 +3,9 @@
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <unistd.h>
+#include <algorithm>
 #include "shell_utils.h"
+#include "alias_manager.h"
 
 // Built-in commands
 std::unordered_map<std::string, CommandHandler> command_table = {
@@ -205,6 +207,75 @@ std::unordered_map<std::string, CommandHandler> command_table = {
     {
         "false", [](const std::vector<std::string>& /*args*/) {
             return false; // false command also never causes shell exit, but indicates failure
+        }
+    },
+    {
+        "alias", [](const std::vector<std::string>& args) {
+            if (args.size() == 1) {
+                // List all aliases
+                const auto& all_aliases = alias_manager.get_all_aliases();
+                if (all_aliases.empty()) {
+                    // No output if no aliases are defined
+                    return false;
+                }
+                
+                // Sort aliases by name for consistent output
+                std::vector<std::pair<std::string, std::string>> sorted_aliases(all_aliases.begin(), all_aliases.end());
+                std::sort(sorted_aliases.begin(), sorted_aliases.end());
+                
+                for (const auto& pair : sorted_aliases) {
+                    std::cout << pair.first << "='" << pair.second << "'\n";
+                }
+                return false;
+            }
+            
+            for (size_t i = 1; i < args.size(); ++i) {
+                const std::string& arg = args[i];
+                size_t eq_pos = arg.find('=');
+                
+                if (eq_pos != std::string::npos) {
+                    // Setting an alias: alias name=value
+                    std::string name = arg.substr(0, eq_pos);
+                    std::string value = arg.substr(eq_pos + 1);
+                    
+                    // Remove quotes if present
+                    if (!value.empty() && 
+                        ((value.front() == '"' && value.back() == '"') ||
+                         (value.front() == '\'' && value.back() == '\''))) {
+                        value = value.substr(1, value.length() - 2);
+                    }
+                    
+                    if (!name.empty()) {
+                        alias_manager.set_alias(name, value);
+                    }
+                } else {
+                    // Show specific alias
+                    if (alias_manager.has_alias(arg)) {
+                        std::cout << arg << "='" << alias_manager.get_alias(arg) << "'\n";
+                    } else {
+                        std::cerr << arg << ": not found\n";
+                    }
+                }
+            }
+            
+            return false;
+        }
+    },
+    {
+        "unalias", [](const std::vector<std::string>& args) {
+            if (args.size() < 2) {
+                std::cerr << "unalias: usage: unalias name [name ...]\n";
+                return false;
+            }
+            
+            for (size_t i = 1; i < args.size(); ++i) {
+                const std::string& name = args[i];
+                if (!alias_manager.remove_alias(name)) {
+                    std::cerr << "unalias: " << name << ": not found\n";
+                }
+            }
+            
+            return false;
         }
     }
 };

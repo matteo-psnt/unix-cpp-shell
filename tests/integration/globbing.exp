@@ -15,37 +15,37 @@ expect {
     "src/command_parser.cpp" { 
         expect "src/command_table.cpp" {
             expect "src/completion.cpp" {
-                puts "✓ Test 1 passed: *.cpp glob expansion works"
+                puts "SUCCESS: *.cpp glob expansion works"
             }
         }
     }
-    timeout { puts "✗ Test 1 failed: *.cpp glob expansion timeout"; exit 1 }
+    timeout { puts "ERROR: *.cpp glob expansion timeout"; exit 1 }
 }
 
 # Test 2: rm file?.txt (non-existent) should preserve literal
 expect "$ "
 send "echo 'rm file?.txt would run:' && echo file?.txt\r"
 expect {
-    "file?.txt" { puts "✓ Test 2 passed: ? glob with no matches preserved literal" }
-    timeout { puts "✗ Test 2 failed: ? glob test timeout"; exit 1 }
+    "file?.txt" { puts "SUCCESS: ? glob with no matches preserved literal" }
+    timeout { puts "ERROR: ? glob test timeout"; exit 1 }
 }
 
 # Test 3: Test multiple patterns in one command
 expect "$ "
 send "echo 'Files:' src/*.h src/*.cpp | head -1\r"
 expect {
-    "Files: src/command_parser.h" {
-        puts "✓ Test 3 passed: Multiple glob patterns in one command work"
+    "Files: src/alias_manager.h" {
+        puts "SUCCESS: Multiple glob patterns in one command work"
     }
-    timeout { puts "✗ Test 3 failed: Multiple glob patterns timeout"; exit 1 }
+    timeout { puts "ERROR: Multiple glob patterns timeout"; exit 1 }
 }
 
 # Test 4: Test hidden files
 expect "$ "
 send "ls .* | head -3\r"
 expect {
-    ".clang-format" { puts "✓ Test 4 passed: Hidden file globbing works" }
-    timeout { puts "✗ Test 4 failed: Hidden file globbing timeout"; exit 1 }
+    ".clang-format" { puts "SUCCESS: Hidden file globbing works" }
+    timeout { puts "ERROR: Hidden file globbing timeout"; exit 1 }
 }
 
 # Exit shell
@@ -53,4 +53,4 @@ expect "$ "
 send "exit\r"
 expect eof
 
-puts "\n✓ All globbing tests passed!"
+puts "\nSUCCESS: All globbing tests passed!"
